@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b2a3f">
+<title>Painel da Lavagem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+  :root {
+    --bg: #eef2f7;
+    --panel: #ffffff;
+    --soft: #e7edf4;
+    --ink: #0b1b2b;
+    --mut: #64748b;
+    --line: #e2e8f0;
+    --hero: #0b2a3f;
+    --accent: #0891b2;
+    --on-accent: #ffffff;
+    --sombra: 0 1px 2px rgba(11,27,43,.06), 0 10px 28px rgba(11,27,43,.07);
+    --font-d: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --font-b: "Barlow", system-ui, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #070f16;
+      --panel: #0f1b25;
+      --soft: #16273a;
+      --ink: #e7eff4;
+      --mut: #8ea3b1;
+      --line: #1c2f40;
+      --hero: #0e4660;
+      --accent: #22d3ee;
+      --on-accent: #04202a;
+      --sombra: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 90px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-b);
+    font-size: 16px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 8px 18px 60px; }
+  h1, h2, h3 { font-family: var(--font-d); margin: 0; letter-spacing: 0.01em; }
+  h2 {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 28px; font-weight: 700; margin: 52px 0 4px;
+  }
+  h2::before {
+    content: ""; width: 6px; height: 26px; border-radius: 4px;
+    background: linear-gradient(var(--accent), #22d3ee);
+  }
+  .nota { color: var(--mut); font-size: 14px; margin: 0 0 14px; }
+
+  .topo {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1px 0 var(--line), 0 6px 20px rgba(11,27,43,.05);
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  .topo-in {
+    max-width: 1120px; margin: 0 auto; padding: 12px 18px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px;
+  }
+  .marca { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .marca svg { width: 38px; height: 38px; flex: none; }
+  .marca h1 { font-size: 28px; font-weight: 700; line-height: 1; }
+  .marca small { color: var(--mut); font-size: 13px; }
+  .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+  .seg { display: flex; background: var(--soft); border-radius: 12px; padding: 4px; gap: 2px; overflow-x: auto; }
+  .seg button {
+    border: 0; background: transparent; color: var(--mut);
+    font: 600 14px var(--font-b); padding: 8px 13px; border-radius: 9px; cursor: pointer; white-space: nowrap;
+  }
+  .seg button.on { background: var(--panel); color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.14); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .btn-icone {
+    width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); cursor: pointer; display: grid; place-items: center;
+  }
+  .btn-icone svg { width: 18px; height: 18px; }
+  .btn-icone.gira svg { animation: gira .8s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .primario {
+    border: 0; background: var(--accent); color: var(--on-accent);
+    font: 600 15px var(--font-b); padding: 0 18px; height: 40px; border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .primario svg { width: 16px; height: 16px; }
+  .primario:disabled { opacity: .6; cursor: wait; }
+  .menu { position: relative; }
+  .pop {
+    position: absolute; right: 0; top: calc(100% + 8px); width: 290px; z-index: 30;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.2);
+  }
+  .pop[hidden] { display: none; }
+  .pop button {
+    width: 100%; text-align: left; border: 0; background: transparent; color: var(--ink);
+    padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; display: block;
+  }
+  .pop button:hover { background: var(--soft); }
+  .pop b { display: block; font-weight: 600; }
+  .pop span { color: var(--mut); font-size: 13px; }
+
+  .modal-fundo {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 16px;
+  }
+  .modal {
+    background: var(--panel); border-radius: 18px; padding: 26px;
+    width: min(100%, 560px); max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }
+  .modal h3 { font-size: 26px; margin-bottom: 4px; }
+  .modal .sub { color: var(--mut); font-size: 14px; margin-bottom: 18px; }
+  .modal label { display: block; font-weight: 600; font-size: 14px; margin: 18px 0 8px; color: var(--mut); }
+  .modal .tipo-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal .tipo-grade button {
+    border: 2px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 12px; padding: 14px 10px;
+    font: 600 14px var(--font-b); cursor: pointer;
+    text-align: left; display: flex; flex-direction: column; gap: 4px;
+  }
+  .modal .tipo-grade button b { font: 700 16px var(--font-d); }
+  .modal .tipo-grade button small { color: var(--mut); font-size: 12px; font-weight: 500; }
+  .modal .tipo-grade button.on {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  }
+  .modal .info {
+    margin-top: 18px; background: var(--soft); border-radius: 12px;
+    padding: 12px 14px; font-size: 13px; color: var(--mut); line-height: 1.5;
+  }
+  .modal .info b { color: var(--ink); }
+  .modal .acoes { display: flex; gap: 10px; margin-top: 22px; }
+  .modal .acoes button { flex: 1; padding: 14px; border-radius: 12px; font: 600 16px var(--font-b); cursor: pointer; border: 0; }
+  .modal .cancelar { background: var(--soft); color: var(--ink); }
+  .modal .confirmar { background: var(--accent); color: var(--on-accent); }
+  .modal .confirmar:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Lista de dias com registros (exportação) */
+  .dias-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 8px 0 10px; flex-wrap: wrap; }
+  .dias-topo .contador { font-size: 13px; color: var(--mut); font-weight: 600; }
+  .dias-topo .mini { display: flex; gap: 8px; }
+  .dias-topo .mini button {
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    font: 600 13px var(--font-b); padding: 6px 12px; border-radius: 99px; cursor: pointer;
+  }
+  .dias-topo .mini button:hover { background: var(--soft); }
+  .dias-lista {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px; max-height: 320px; overflow-y: auto;
+    padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg);
+  }
+  .dias-lista .dia-btn {
+    border: 2px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 10px; padding: 10px 12px; cursor: pointer;
+    text-align: left; display: flex; flex-direction: column; gap: 2px;
+    font: 600 14px var(--font-b);
+    transition: border-color .12s, background .12s;
+  }
+  .dias-lista .dia-btn b { font: 700 16px var(--font-d); letter-spacing: .01em; }
+  .dias-lista .dia-btn small { font-size: 12px; color: var(--mut); font-weight: 500; }
+  .dias-lista .dia-btn:hover { background: var(--soft); }
+  .dias-lista .dia-btn.on {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+    color: var(--accent);
+  }
+  .dias-lista .dia-btn.on small { color: var(--accent); }
+  .dias-vazio { padding: 20px 12px; text-align: center; color: var(--mut); font-size: 14px; }
+
+  .hero {
+    background:
+      radial-gradient(700px 320px at 90% -10%, rgba(34,211,238,.30), transparent 60%),
+      radial-gradient(500px 300px at -5% 110%, rgba(8,145,178,.35), transparent 60%),
+      linear-gradient(135deg, #0b2a3f, #0a4a63);
+    box-shadow: 0 18px 50px rgba(10,74,99,.28);
+    color: #fff; border-radius: 22px; padding: 30px 32px;
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px 40px; margin-top: 20px;
+  }
+  .hero .rotulo { opacity: .8; font-size: 16px; }
+  .hero .grande {
+    font: 700 clamp(84px, 14vw, 148px)/.88 var(--font-d); letter-spacing: -.01em; margin: 6px 0 8px;
+    font-variant-numeric: tabular-nums; text-shadow: 0 6px 30px rgba(0,0,0,.25);
+  }
+  .hero .sub { opacity: .8; }
+  .meta { margin-top: 18px; max-width: 360px; }
+  .meta .linha { display: flex; justify-content: space-between; font-size: 14px; opacity: .9; margin-bottom: 7px; }
+  .meta .trilho { height: 10px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .meta .trilho i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22d3ee, #a5f3fc); }
+  .meta.ok .trilho i { background: linear-gradient(90deg, #34d399, #bbf7d0); }
+  .stats { align-self: end; }
+  .stats div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.18); }
+  .stats div:last-child { border-bottom: 0; }
+  .stats span { opacity: .78; }
+  .stats b { font: 600 24px var(--font-d); text-align: right; font-variant-numeric: tabular-nums; }
+  .mixwrap { grid-column: 1 / -1; }
+  .mix { display: flex; height: 14px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.16); gap: 2px; }
+  .mix i { display: block; height: 100%; min-width: 3px; }
+  .mix.fino { height: 8px; background: var(--soft); }
+  .legenda { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: 14px; }
+  .legenda span { display: inline-flex; align-items: center; gap: 7px; opacity: .92; }
+  .legenda b { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  .equipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
+  .ficha {
+    position: relative; overflow: hidden; background: var(--panel);
+    border-radius: 16px; padding: 18px 20px 18px 24px;
+    box-shadow: var(--sombra); transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .ficha:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(11,27,43,.08), 0 18px 40px rgba(11,27,43,.14); }
+  .ficha::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px; background: var(--cor); }
+  .equipe .ficha:first-child { box-shadow: 0 0 0 2px var(--accent), var(--sombra); }
+  .equipe .ficha:first-child .rank { color: var(--accent); }
+  .cab { display: flex; align-items: center; gap: 12px; }
+  .cab h3 { font-size: 24px; font-weight: 700; }
+  .rank { margin-left: auto; font: 600 17px var(--font-d); color: var(--mut); }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 50%; background: var(--cor); color: #fff; flex: none;
+    display: grid; place-items: center; font: 700 22px var(--font-d);
+  }
+  .ficha .total { font: 700 64px/1 var(--font-d); margin: 14px 0 12px; font-variant-numeric: tabular-nums; }
+  .ficha .total small { font: 500 16px var(--font-b); color: var(--mut); margin-left: 6px; }
+  dl.fatos { margin: 14px 0 0; }
+  dl.fatos div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  dl.fatos dt { color: var(--mut); }
+  dl.fatos dd { margin: 0; font-weight: 600; text-align: right; }
+
+  .amostras { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .amostra {
+    background: var(--panel); border-radius: 14px; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: var(--sombra); transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .amostra:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(11,27,43,.08), 0 18px 40px rgba(11,27,43,.14); }
+  .amostra .faixa {
+    background: var(--c); color: #fff; font: 600 17px var(--font-d);
+    padding: 10px 16px; letter-spacing: .03em; display: flex; align-items: center; gap: 8px;
+  }
+  .amostra .faixa .bolinha-tipo { width: 10px; height: 10px; border-radius: 3px; background: rgba(255,255,255,.75); }
+  .amostra .corpo { padding: 16px 16px 18px; flex: 1; display: flex; flex-direction: column; }
+  .amostra .lider { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .amostra .lider .avatar { width: 48px; height: 48px; font-size: 24px; }
+  .amostra .lider .dados { flex: 1; min-width: 0; }
+  .amostra .lider .nome { font: 700 24px var(--font-d); line-height: 1.05; margin-bottom: 2px; }
+  .amostra .lider .num { font: 600 16px var(--font-b); color: var(--mut); }
+  .amostra .lider .num b { color: var(--ink); font-weight: 700; }
+  .amostra .empate { font-size: 12px; font-weight: 700; color: var(--mut); margin-bottom: 8px; }
+  .amostra .barra { height: 8px; border-radius: 99px; background: var(--soft); overflow: hidden; margin-top: auto; }
+  .amostra .barra i { display: block; height: 100%; background: var(--c); border-radius: 99px; }
+  .amostra .rodape { display: flex; justify-content: space-between; font-size: 13px; color: var(--mut); margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .amostra.vazia { opacity: .55; }
+  .amostra.vazia .corpo { text-align: center; color: var(--mut); font-size: 15px; padding: 26px 16px; }
+
+  .painel { background: var(--panel); border-radius: 16px; padding: 18px; box-shadow: var(--sombra); }
+  .painel h3 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
+  .graf { position: relative; height: 290px; }
+  .grande-graf { height: 340px; }
+
+  .rk { position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; overflow: hidden; background: var(--soft); margin-bottom: 6px; }
+  .rk .fill { position: absolute; inset: 0 auto 0 0; background: var(--cor, var(--accent)); opacity: .2; }
+  .rk > * { position: relative; }
+  .rk .pos { font: 700 20px var(--font-d); width: 26px; color: var(--mut); }
+  .rk .data { font-weight: 600; }
+  .rk .espaco { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+  .rk .n { font: 700 20px var(--font-d); min-width: 28px; text-align: right; }
+  .tres { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .tres h3 { display: flex; align-items: center; gap: 8px; }
+
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 99px; color: #fff; font-size: 13px; font-weight: 600; background: var(--cor); }
+
+  .ida-linha { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .ida-linha:last-child { border-bottom: 0; }
+  .ida-linha .data { font-weight: 600; min-width: 130px; }
+  .ida-linha .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ida-linha .n { margin-left: auto; font: 700 20px var(--font-d); }
+
+  .msg { background: var(--panel); border: 1px dashed var(--line); border-radius: 14px; padding: 18px; color: var(--mut); margin-top: 20px; }
+  .err { border-color: #b3382c; color: #b3382c; }
+  .link { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+  #toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0)); transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 12px 20px; border-radius: 99px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 200; max-width: 90vw; text-align: center;
+  }
+  #toast.on { opacity: 1; }
+
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; padding: 24px 20px; }
+    .marca h1 { font-size: 24px; }
+    .controles { width: 100%; }
+    .seg { flex: 1; }
+    .modal { padding: 20px; }
+    .modal h3 { font-size: 22px; }
+    .modal .tipo-grade { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-icone.gira svg { animation: none; }
+    .ficha, .amostra { transition: none; }
+    .ficha:hover, .amostra:hover { transform: none; }
+  }
+
+  /* ===== Pesquisa de veículo (topo) ===== */
+  #pesquisa { margin-top: 20px; }
+  .pq-card { background: var(--panel); border-radius: 18px; padding: 20px 22px 22px; box-shadow: var(--sombra); }
+  .pq-topo { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 14px; margin-bottom: 16px; }
+  .pq-titulo { font: 700 26px var(--font-d); letter-spacing: .01em; }
+  .pq-sub { color: var(--mut); font-size: 14px; }
+  .pq-linha { display: grid; grid-template-columns: auto 1fr; gap: 16px 36px; align-items: end; }
+  .pq-rot { display: block; font-size: 13px; font-weight: 600; color: var(--mut); margin-bottom: 8px; }
+  .pq-chassi { display: flex; gap: 10px; align-items: center; }
+  .pq-chassi input {
+    width: 62px; height: 68px; padding: 0; text-align: center; text-transform: uppercase;
+    font: 700 30px var(--font-b); color: var(--ink); caret-color: var(--accent);
+    background: var(--bg); border: 2px solid var(--line); border-radius: 12px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .pq-chassi input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .pq-chassi input.cheio { border-color: var(--accent); }
+  .pq-limpar { border: 0; background: transparent; color: var(--mut); font: 600 14px var(--font-b); padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+  .pq-limpar:hover { background: var(--soft); color: var(--ink); }
+  .pq-limpar[hidden] { display: none; }
+
+  .pq-res { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .pq-res[hidden] { display: none; }
+  .pq-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .pq-stat { background: var(--soft); border-radius: 12px; padding: 10px 16px; }
+  .pq-stat small { display: block; font-size: 12px; font-weight: 600; color: var(--mut); }
+  .pq-stat b { display: block; font: 700 24px var(--font-d); }
+  .pq-lista { max-height: 520px; overflow-y: auto; border: 1px solid var(--line); border-radius: 14px; }
+  .pq-item { display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center; padding: 14px 16px; }
+  .pq-item + .pq-item { border-top: 1px solid var(--line); }
+  .pq-data { text-align: center; background: var(--soft); border-radius: 10px; padding: 6px 2px; }
+  .pq-data b { display: block; font: 700 24px/1.05 var(--font-d); }
+  .pq-data span { display: block; font-size: 12px; font-weight: 600; color: var(--mut); text-transform: capitalize; }
+  .pq-modelo { font-size: 17px; font-weight: 600; }
+  .pq-meta { margin-top: 2px; font-size: 14px; color: var(--mut); }
+  .pq-meta b { color: var(--ink); font-weight: 600; }
+  .pq-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .pq-tag { font-size: 12.5px; font-weight: 600; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--line); color: var(--mut); }
+  .pq-tag.dest { color: var(--ink); background: var(--soft); border-color: transparent; }
+  .pq-lav { display: flex; align-items: center; gap: 10px; text-align: right; }
+  .pq-lav .quem { display: block; font-weight: 700; }
+  .pq-lav .hr { display: block; font-size: 13px; color: var(--mut); }
+  .pq-vazio { text-align: center; padding: 22px 12px; color: var(--mut); }
+  .pq-vazio b { display: block; color: var(--ink); font-size: 17px; margin-bottom: 4px; }
+  .pq-erro { color: #b3382c; font-weight: 600; text-align: center; padding: 16px; }
+  @media (max-width: 760px) {
+    .pq-linha { grid-template-columns: 1fr; }
+    .pq-card { padding: 18px 16px 20px; }
+    .pq-chassi input { width: 100%; max-width: 70px; height: 62px; font-size: 28px; }
+    .pq-chassi { gap: 8px; }
+    .pq-item { grid-template-columns: 56px 1fr; gap: 12px; }
+    .pq-lav { grid-column: 1 / -1; flex-direction: row-reverse; justify-content: flex-end; text-align: left; padding-top: 10px; border-top: 1px solid var(--line); }
+  }
+
+  /* =========================================================
+     CALENDÁRIO (prefixado com .cal- para não colidir com o painel)
+     ========================================================= */
+  .cal-card {
+    background: var(--panel);
+    border-radius: 18px;
+    padding: 20px 22px 22px;
+    box-shadow: var(--sombra);
+  }
+  .cal-topo { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 14px; margin-bottom: 16px; }
+  .cal-titulo { font: 700 26px var(--font-d); letter-spacing: .01em; }
+  .cal-sub { color: var(--mut); font-size: 14px; }
+
+  .cal-tela { animation: calFade .3s ease; }
+  @keyframes calFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--line); flex-wrap: wrap; gap: 8px; }
+  .cal-header h3 { font-family: var(--font-d); font-size: 24px; margin: 0; color: var(--accent); text-transform: capitalize; }
+  .cal-header button {
+    background: transparent; border: 0; color: var(--mut); font-weight: 600; cursor: pointer; text-decoration: underline;
+  }
+
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
+  }
+  .cal-dia-semana {
+    text-align: center; font-weight: 600; color: var(--mut); font-size: 13px; text-transform: uppercase; padding-bottom: 8px;
+  }
+  .cal-btn-dia {
+    aspect-ratio: 1;
+    border: 2px solid var(--line);
+    background: var(--panel);
+    color: var(--mut);
+    border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font: 600 18px var(--font-b);
+    cursor: default;
+    transition: all .15s;
+    padding: 4px;
+  }
+  .cal-btn-dia.cal-tem-dados {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+    color: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  }
+  .cal-btn-dia.cal-tem-dados:hover { background: color-mix(in srgb, var(--accent) 20%, var(--panel)); }
+  .cal-btn-dia.cal-tem-dados:active { transform: scale(0.95); }
+  .cal-btn-dia .cal-qtd-carros {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    background: var(--accent); color: var(--on-accent);
+    padding: 2px 6px; border-radius: 99px; margin-top: 4px;
+  }
+  .cal-btn-dia.cal-vazio { opacity: 0.5; }
+
+  .cal-grid-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .cal-card-pessoa {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 8px solid var(--cor);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.02);
+  }
+  .cal-card-pessoa .cal-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--cor); color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--font-d); font-size: 22px; font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .cal-card-pessoa h3 { font-family: var(--font-d); font-size: 24px; margin: 0 0 16px; color: var(--cor); }
+
+  .cal-destaque-media {
+    background: color-mix(in srgb, var(--cor) 10%, var(--panel));
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .cal-destaque-media .cal-texto { font-size: 13px; color: var(--mut); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; line-height: 1.2; }
+  .cal-destaque-media .cal-valor { font-family: var(--font-d); font-size: 30px; font-weight: 700; color: var(--cor); line-height: 1; }
+
+  .cal-lista-dados { display: flex; flex-direction: column; gap: 10px; }
+  .cal-dado-linha {
+    display: flex; justify-content: space-between; font-size: 15px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+  .cal-dado-linha:last-child { border-bottom: 0; padding-bottom: 0; }
+  .cal-dado-linha .cal-rotulo { color: var(--mut); }
+  .cal-dado-linha .cal-valor { font-weight: 600; color: var(--ink); }
+
+  .cal-msg { text-align: center; padding: 30px 20px; color: var(--mut); font-size: 16px; }
+
+  /* Modal do calendário */
+  .cal-modal-fundo {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 120; padding: 16px;
+  }
+  .cal-modal-fundo[hidden] { display: none; }
+  .cal-modal {
+    background: var(--panel); border-radius: 20px;
+    width: min(100%, 900px); max-height: 92vh; overflow-y: auto;
+    padding: 22px 24px 26px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    position: relative;
+  }
+  .cal-modal-fechar {
+    position: absolute; top: 14px; right: 14px;
+    width: 38px; height: 38px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--soft); color: var(--ink);
+    cursor: pointer; display: grid; place-items: center;
+  }
+  .cal-modal-fechar:hover { background: var(--line); }
+  .cal-modal-fechar svg { width: 18px; height: 18px; }
+
+  @media (max-width: 600px) {
+    .cal-card { padding: 14px; }
+    .cal-grid { gap: 4px; }
+    .cal-btn-dia { font-size: 16px; border-radius: 8px; }
+    .cal-btn-dia .cal-qtd-carros { font-size: 10px; padding: 1px 4px; }
+    .cal-modal { padding: 18px 16px 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <div class="topo-in">
+    <div class="marca">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect width="40" height="40" rx="11" fill="#0b2a3f"/>
+        <path d="M20 7 L28.5 19.5 A9.5 9.5 0 1 1 11.5 19.5 Z" fill="#fff"/>
+        <ellipse cx="16.8" cy="23.5" rx="1.8" ry="3.6" fill="#a9d6e8"/>
+      </svg>
+      <div>
+        <h1>Painel da Lavagem</h1>
+        <small id="atualizado">Carregando…</small>
+      </div>
+    </div>
+    <div class="controles">
+      <div class="seg" id="barra">
+        <button data-p="hoje">Hoje</button>
+        <button data-p="sete">7 dias</button>
+        <button data-p="trinta">30 dias</button>
+        <button data-p="mes">Este mês</button>
+        <button data-p="tudo">Tudo</button>
+      </div>
+      <button class="btn-icone" id="btnCalendario" title="Abrir calendário" aria-label="Abrir calendário">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
+      <button class="btn-icone" id="atualizar" title="Atualizar dados" aria-label="Atualizar dados">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <div class="menu">
+        <button class="primario" id="exportar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Exportar
+        </button>
+        <div class="pop" id="menuExp" hidden>
+          <button data-x="simples"><b>Planilha</b><span>Modelo da folha de lavagem, uma aba por dia, com horário</span></button>
+          <button data-x="graficos"><b>Planilha com gráficos</b><span>Resumo, tabelas, registros e os gráficos como imagem</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section id="pesquisa" aria-label="Pesquisar veículo">
+    <div class="pq-card">
+      <div class="pq-topo">
+        <div class="pq-titulo">Pesquisar veículo</div>
+        <div class="pq-sub">Histórico de lavagens pelos últimos 4 caracteres do chassi</div>
+      </div>
+      <div class="pq-linha">
+        <div>
+          <span class="pq-rot" id="pqRot">Chassi</span>
+          <div class="pq-chassi" id="pqChassi" role="group" aria-labelledby="pqRot">
+            <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 1">
+            <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 2">
+            <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 3">
+            <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 4">
+            <button type="button" class="pq-limpar" id="pqLimpar" hidden>Limpar</button>
+          </div>
+        </div>
+      </div>
+      <div class="pq-res" id="pqRes" aria-live="polite" hidden></div>
+    </div>
+  </section>
+  <div id="conteudo"></div>
+</main>
+
+<div class="cal-modal-fundo" id="calModal" hidden>
+  <div class="cal-modal" role="dialog" aria-modal="true" aria-label="Calendário de médias">
+    <button class="cal-modal-fechar" id="calFechar" aria-label="Fechar calendário">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="cal-topo">
+      <div class="cal-titulo">Calendário de médias</div>
+      <div class="cal-sub">Clique em um dia que tenha carros para ver a média de tempo de cada colaborador</div>
+    </div>
+    <div id="calConteudo"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const DB = "https://controle-de-lavagens-78b2e-default-rtdb.firebaseio.com";
+  const EQUIPE = {
+    Felipe: "#0f766e",
+    Marcos: "#be185d",
+    Jonathan: "#4338ca",
+    Ridelvan: "#c2410c"
+  };
+  const TIPOS = { novo: "Carro novo", of: "Oficina", teste: "Test drive", show: "Showroom", outros: "Outros" };
+  const COR_TIPO = { novo: "#1b7f4b", of: "#b3382c", teste: "#b86e00", show: "#1f5fbf", outros: "#6b7280" };
+  const PERIODOS = { hoje: "Hoje", sete: "Últimos 7 dias", trinta: "Últimos 30 dias", mes: "Este mês", tudo: "Todo o histórico" };
+  const nomes = Object.keys(EQUIPE);
+  const chavesTipos = Object.keys(TIPOS);
+  const TEMA_CLARO = { texto: "#33424e", grade: "#dde3e8", ink: "#0b1b2b" };
+  const HORA_VIRADA = 20;
+  const META_DIARIA = 15;
+
+  let periodo = "hoje";
+  let bruto = null;
+  let erro = "";
+  let carregando = true;
+  let atualizadoEm = null;
+  let graficos = [];
+  let exportando = false;
+
+  const $ = (seletor) => document.querySelector(seletor);
+
+  function iso(d) {
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + mes + "-" + dia;
+  }
+  function hojeOperacional() {
+    const d = new Date();
+    if (d.getHours() >= HORA_VIRADA) d.setDate(d.getDate() + 1);
+    return iso(d);
+  }
+  function brData(dia) { return dia.split("-").reverse().join("/"); }
+  function brDataNome(dia) { const p = dia.split("-"); return p[2] + "-" + p[1] + "-" + p[0]; }
+  function fmtData(dia) {
+    const [a, m, d] = dia.split("-").map(Number);
+    return new Date(a, m - 1, d).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "2-digit" });
+  }
+  function fmtDataLonga(dia) {
+    const [a, m, d] = dia.split("-").map(Number);
+    return new Date(a, m - 1, d).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+  function fmtDiaCurto(dia) { const p = dia.split("-"); return p[2] + "/" + p[1]; }
+  function hora(ts) { return new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+  function media(total, dias) { return dias ? (total / dias).toFixed(1).replace(".", ",") : "—"; }
+  function mediaNum(total, dias) { return dias ? Math.round((total / dias) * 10) / 10 : null; }
+
+  function tipoParaPlanilha(k) {
+    return k === "novo" ? "Novo" : (TIPOS[k] || k);
+  }
+
+  const ARGB_SETOR = { novo: "FF1B7F4B", of: "FFB3382C", teste: "FFB86E00", show: "FF1F5FBF", outros: "FF6B7280" };
+  const ARGB_COR = {
+    branco: "FFFFFFFF", preto: "FF000000", prata: "FFC0C0C0", cinza: "FF6B7280",
+    azul: "FF2563EB", vermelho: "FFDC2626", vinho: "FF7F1D1D", verde: "FF16A34A",
+    amarelo: "FFFACC15", laranja: "FFF97316", marrom: "FF78350F", bege: "FFE7D3B3", dourado: "FFB8860B"
+  };
+  function semAcento(t) { return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
+  function argbDaCor(nome) {
+    const t = semAcento(nome);
+    if (!t) return null;
+    const k = Object.keys(ARGB_COR).find((c) => t.includes(c));
+    return k ? ARGB_COR[k] : null;
+  }
+  function argbPessoa(nome) { return EQUIPE[nome] ? "FF" + EQUIPE[nome].slice(1).toUpperCase() : null; }
+  function pintarSetor(cel, tipo) {
+    const cor = ARGB_SETOR[tipo];
+    if (!cor) return;
+    cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cor } };
+    cel.font = { size: 12, bold: true, color: { argb: "FFFFFFFF" } };
+  }
+  function pintarLetra(cel, argb) {
+    if (argb) cel.font = { size: 12, bold: true, color: { argb: argb } };
+  }
+  function luminancia(argb) {
+    const v = [2, 4, 6].map((i) => parseInt(argb.slice(i, i + 2), 16) / 255)
+      .map((x) => (x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)));
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+  }
+  function pintarVeiculo(cel) {
+    cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCEBF5" } };
+    cel.font = { size: 12, bold: true, color: { argb: "FF000000" } };
+  }
+  function pintarCorCelula(cel, nomeCor) {
+    cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCEBF5" } };
+    cel.font = { size: 12, bold: true, color: { argb: "FF000000" } };
+  }
+  function pintarLavador(cel, nome) {
+    cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCEBF5" } };
+    cel.font = { size: 12, bold: true, color: { argb: "FF000000" } };
+  }
+  const ARGB_FUNDO_PADRAO = "FFDCEBF5";
+  function pintarFundo(cel) {
+    cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ARGB_FUNDO_PADRAO } };
+    cel.font = { size: 12, bold: true, color: { argb: "FF0B2A3F" } };
+  }
+
+  function marcasDoRegistro(r) {
+    const marcas = [];
+    if (r.polimento)    marcas.push("Polimento");
+    if (r.foraListagem) marcas.push("Fora da listagem");
+    if (r.substituido)  marcas.push("Substituído");
+    return marcas.join(", ");
+  }
+
+  function ordenarDias(mapa) {
+    return Object.entries(mapa).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : -1));
+  }
+  function melhorDia(mapa) {
+    const primeiro = ordenarDias(mapa)[0];
+    return primeiro ? fmtData(primeiro[0]) + " (" + primeiro[1] + ")" : "—";
+  }
+  function toast(mensagem) {
+    const t = $("#toast");
+    t.textContent = mensagem;
+    t.classList.add("on");
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => t.classList.remove("on"), 2600);
+  }
+
+  function avatar(nome) {
+    return `<span class="avatar" style="--cor:${EQUIPE[nome]}">${nome.charAt(0)}</span>`;
+  }
+  function chip(nome, texto) {
+    return `<span class="chip" style="--cor:${EQUIPE[nome]}">${texto}</span>`;
+  }
+  function barraMix(tipos, fino) {
+    const total = chavesTipos.reduce((s, k) => s + tipos[k], 0);
+    const partes = total
+      ? chavesTipos.filter((k) => tipos[k]).map((k) =>
+          `<i style="width:${(tipos[k] / total) * 100}%;background:${COR_TIPO[k]}" title="${TIPOS[k]}: ${tipos[k]}"></i>`).join("")
+      : "";
+    return `<div class="mix${fino ? " fino" : ""}">${partes}</div>`;
+  }
+  function legendaMix(tipos) {
+    return `<div class="legenda">${chavesTipos.map((k) =>
+      `<span><b style="background:${COR_TIPO[k]}"></b>${TIPOS[k]} <strong>${tipos[k]}</strong></span>`).join("")}</div>`;
+  }
+  function animarNumero(el) {
+    const alvo = Number(el.dataset.valor);
+    const quieto = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!alvo || !window.requestAnimationFrame || quieto) return;
+    const inicio = performance.now();
+    const duracao = 700;
+    function passo(agora) {
+      const p = Math.min(1, (agora - inicio) / duracao);
+      el.textContent = Math.round(alvo * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(passo);
+    }
+    requestAnimationFrame(passo);
+  }
+
+  async function buscar(caminho) {
+    let resposta;
+    try {
+      resposta = await fetch(DB + "/" + caminho + ".json");
+    } catch (e) {
+      throw new Error("Sem conexão com o banco de dados. Verifique a internet.");
+    }
+    if (resposta.status === 401 || resposta.status === 403) {
+      throw new Error("O banco recusou a leitura. Confira as regras do Firebase.");
+    }
+    if (!resposta.ok) throw new Error("Erro do banco de dados (" + resposta.status + ").");
+    return (await resposta.json()) || {};
+  }
+
+  async function carregar() {
+    carregando = true;
+    erro = "";
+    $("#atualizar").classList.add("gira");
+    render();
+    if (window.pesquisaRender) pesquisaRender();
+    try {
+      const [lavagens, showroom] = await Promise.all([buscar("lavagens"), buscar("showroom")]);
+      bruto = { lavagens: lavagens, showroom: showroom };
+      atualizadoEm = new Date();
+    } catch (e) {
+      erro = e.message;
+    }
+    carregando = false;
+    $("#atualizar").classList.remove("gira");
+    render();
+    if (window.pesquisaRender) pesquisaRender();
+  }
+
+  function inicioDoPeriodo() {
+    const d = new Date();
+    if (d.getHours() >= HORA_VIRADA) d.setDate(d.getDate() + 1);
+    if (periodo === "hoje") return iso(d);
+    if (periodo === "sete") { d.setDate(d.getDate() - 6); return iso(d); }
+    if (periodo === "trinta") { d.setDate(d.getDate() - 29); return iso(d); }
+    if (periodo === "mes") { d.setDate(1); return iso(d); }
+    return "0000-00-00";
+  }
+  function intervaloTexto() {
+    const inicio = inicioDoPeriodo();
+    const fim = brData(hojeOperacional());
+    return inicio === "0000-00-00" ? "até " + fim : brData(inicio) + " a " + fim;
+  }
+  function ultimosDias(n) {
+    const lista = [];
+    const base = new Date();
+    if (base.getHours() >= HORA_VIRADA) base.setDate(base.getDate() + 1);
+    for (let i = 0; i < n; i++) {
+      const d = new Date(base);
+      d.setDate(d.getDate() - i);
+      lista.push(iso(d));
+    }
+    return lista;
+  }
+
+  function analisar() {
+    const inicio = inicioDoPeriodo();
+    const pessoas = {};
+    nomes.forEach((n) => {
+      pessoas[n] = {
+        total: 0,
+        tipos: { novo: 0, of: 0, teste: 0, show: 0, outros: 0 },
+        polimento: 0,
+        foraListagem: 0,
+        substituido: 0,
+        dias: {},
+        idas: 0
+      };
+    });
+    const diasGeral = {};
+    let totalCarros = 0;
+    let totalPolimento = 0;
+    let totalFora = 0;
+    let totalSubs = 0;
+    for (const [dia, registros] of Object.entries(bruto.lavagens)) {
+      if (dia < inicio) continue;
+      for (const r of Object.values(registros || {})) {
+        const p = pessoas[r.nome];
+        if (!p) continue;
+        p.total++;
+        if (p.tipos[r.tipo] !== undefined) p.tipos[r.tipo]++;
+        if (r.polimento)    { p.polimento++;    totalPolimento++; }
+        if (r.foraListagem) { p.foraListagem++; totalFora++; }
+        if (r.substituido)  { p.substituido++;  totalSubs++; }
+        p.dias[dia] = (p.dias[dia] || 0) + 1;
+        const g = diasGeral[dia] || (diasGeral[dia] = { total: 0, porPessoa: {} });
+        g.total++;
+        g.porPessoa[r.nome] = (g.porPessoa[r.nome] || 0) + 1;
+        totalCarros++;
+      }
+    }
+    const idasPorDia = {};
+    let totalIdas = 0;
+    for (const [dia, registros] of Object.entries(bruto.showroom)) {
+      if (dia < inicio) continue;
+      for (const r of Object.values(registros || {})) {
+        const p = pessoas[r.nome];
+        if (!p) continue;
+        p.idas++;
+        totalIdas++;
+        const d = idasPorDia[dia] || (idasPorDia[dia] = {});
+        (d[r.nome] = d[r.nome] || []).push(r.ts);
+      }
+    }
+    return { pessoas, diasGeral, idasPorDia, totalCarros, totalIdas, totalPolimento, totalFora, totalSubs };
+  }
+
+  const fundoBranco = {
+    id: "fundoBranco",
+    beforeDraw(chart) {
+      const c = chart.ctx;
+      c.save();
+      c.globalCompositeOperation = "destination-over";
+      c.fillStyle = "#ffffff";
+      c.fillRect(0, 0, chart.width, chart.height);
+      c.restore();
+    }
+  };
+  function temaAtual() {
+    const css = getComputedStyle(document.documentElement);
+    const v = (nome) => css.getPropertyValue(nome).trim();
+    return { texto: v("--mut") || TEMA_CLARO.texto, grade: v("--line") || TEMA_CLARO.grade, ink: v("--ink") || TEMA_CLARO.ink };
+  }
+  function montarConfigs(A, tema, paraImagem) {
+    const base = {
+      responsive: !paraImagem,
+      maintainAspectRatio: false,
+      animation: paraImagem ? false : { duration: 500 },
+      color: tema.texto,
+      borderColor: tema.grade,
+      font: { family: "Barlow, system-ui, sans-serif", size: paraImagem ? 18 : 13 },
+      plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, color: tema.texto } } }
+    };
+    if (paraImagem) base.devicePixelRatio = 1;
+    const eixoY = { beginAtZero: true, ticks: { precision: 0 } };
+    const semGrade = { grid: { display: false } };
+
+    const tipos = {
+      type: "bar",
+      data: {
+        labels: nomes,
+        datasets: chavesTipos.map((k) => ({
+          label: TIPOS[k], data: nomes.map((n) => A.pessoas[n].tipos[k]),
+          backgroundColor: COR_TIPO[k], borderRadius: 3, borderSkipped: false
+        }))
+      },
+      options: { ...base, scales: { x: { stacked: true, ...semGrade }, y: { ...eixoY, stacked: true } } }
+    };
+    const mix = {
+      type: "doughnut",
+      data: {
+        labels: chavesTipos.map((k) => TIPOS[k]),
+        datasets: [{
+          data: chavesTipos.map((k) => nomes.reduce((s, n) => s + A.pessoas[n].tipos[k], 0)),
+          backgroundColor: chavesTipos.map((k) => COR_TIPO[k]), borderWidth: 0
+        }]
+      },
+      options: { ...base, cutout: "62%", plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, color: tema.texto } } } }
+    };
+    const idas = {
+      type: "bar",
+      data: {
+        labels: nomes,
+        datasets: [{
+          label: "Idas ao showroom", data: nomes.map((n) => A.pessoas[n].idas),
+          backgroundColor: nomes.map((n) => EQUIPE[n]), borderRadius: 8, borderSkipped: false
+        }]
+      },
+      options: { ...base, plugins: { legend: { display: false } }, scales: { x: semGrade, y: eixoY } }
+    };
+    const diasOrd = Object.keys(A.diasGeral).sort();
+    const dia = {
+      type: "line",
+      data: {
+        labels: diasOrd.map(fmtDiaCurto),
+        datasets: [
+          {
+            label: "Total", data: diasOrd.map((d) => A.diasGeral[d].total),
+            borderColor: "#0891b2", backgroundColor: "rgba(8,145,178,.15)",
+            fill: true, tension: .35, borderWidth: 3, pointRadius: 3
+          },
+          ...nomes.map((n) => ({
+            label: n, data: diasOrd.map((d) => A.diasGeral[d].porPessoa[n] || 0),
+            borderColor: EQUIPE[n], tension: .35, borderWidth: 2, pointRadius: 0,
+            hidden: !paraImagem
+          }))
+        ]
+      },
+      options: { ...base, interaction: { mode: "index", intersect: false }, scales: { x: semGrade, y: eixoY } }
+    };
+    const configs = { dia, tipos, mix, idas };
+    if (paraImagem) Object.values(configs).forEach((c) => { c.plugins = [fundoBranco]; });
+    return configs;
+  }
+  function destruirGraficos() { graficos.forEach((g) => g.destroy()); graficos = []; }
+  function criarGraficos(A) {
+    if (typeof Chart === "undefined") return;
+    const configs = montarConfigs(A, temaAtual(), false);
+    [["gDia", "dia"], ["gTipos", "tipos"], ["gMix", "mix"], ["gIdas", "idas"]].forEach(([id, chave]) => {
+      const el = $("#" + id);
+      if (el) graficos.push(new Chart(el, configs[chave]));
+    });
+  }
+  function imagensDosGraficos(A) {
+    const configs = montarConfigs(A, TEMA_CLARO, true);
+    const lista = [
+      ["dia", "Carros por dia"],
+      ["tipos", "Carros por colaborador e tipo"],
+      ["mix", "Mistura por tipo (geral)"],
+      ["idas", "Idas ao showroom por colaborador"]
+    ];
+    return lista.map(([chave, titulo]) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1400; canvas.height = 640;
+      const grafico = new Chart(canvas, configs[chave]);
+      const dados = grafico.toBase64Image("image/png", 1);
+      grafico.destroy();
+      return { titulo, dados };
+    });
+  }
+
+  function listarRegistros(origem) {
+    const inicio = inicioDoPeriodo();
+    const saida = [];
+    for (const [dia, registros] of Object.entries(origem)) {
+      if (dia < inicio) continue;
+      for (const [id, r] of Object.entries(registros || {})) {
+        if (EQUIPE[r.nome] === undefined) continue;
+        saida.push({ dia, id, ...r });
+      }
+    }
+    return saida.sort((a, b) => a.ts - b.ts);
+  }
+
+  function registrosDosDias(diasLista) {
+    const setDias = new Set(diasLista);
+    const saida = [];
+    for (const [dia, registros] of Object.entries(bruto.lavagens)) {
+      if (!setDias.has(dia)) continue;
+      for (const [id, r] of Object.entries(registros || {})) {
+        if (EQUIPE[r.nome] === undefined) continue;
+        saida.push({ dia, id, ...r });
+      }
+    }
+    return saida.sort((a, b) => a.ts - b.ts);
+  }
+
+  async function gerarXlsx(comGraficos) {
+    const A = analisar();
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Painel da Lavagem";
+    wb.created = new Date();
+    const PETROLEO = "FF0B2A3F";
+    const borda = { style: "thin", color: { argb: "FFD0D7DD" } };
+    const bordas = { top: borda, left: borda, bottom: borda, right: borda };
+    const dataExcel = (dia) => { const [a, m, d] = dia.split("-").map(Number); return new Date(Date.UTC(a, m - 1, d)); };
+    function cabecalho(linha) {
+      linha.height = 24;
+      linha.eachCell((c) => {
+        c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PETROLEO } };
+        c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+        c.border = bordas;
+      });
+    }
+    function corpo(linha, negrito) {
+      linha.eachCell((c) => { c.border = bordas; if (negrito) c.font = { bold: true }; });
+    }
+
+    const mapaGeral = {};
+    Object.keys(A.diasGeral).forEach((d) => { mapaGeral[d] = A.diasGeral[d].total; });
+    const diasComLavagem = Object.keys(mapaGeral).length;
+    const tiposGeral = {};
+    chavesTipos.forEach((k) => { tiposGeral[k] = nomes.reduce((s, n) => s + A.pessoas[n].tipos[k], 0); });
+
+    const r = wb.addWorksheet("Resumo", { views: [{ showGridLines: false }] });
+    r.columns = [28, 14, 14, 14, 14, 14, 12, 10, 12, 22, 16, 14, 14, 14].map((width) => ({ width }));
+    r.mergeCells("A1:N1");
+    r.getCell("A1").value = "Painel da Lavagem";
+    r.getCell("A1").font = { bold: true, size: 20, color: { argb: PETROLEO } };
+    r.getCell("A2").value = "Período: " + PERIODOS[periodo] + " (" + intervaloTexto() + ")";
+    r.getCell("A3").value = "Gerado em " + new Date().toLocaleString("pt-BR");
+    r.getCell("A3").font = { color: { argb: "FF5B6B78" } };
+    r.addRow([]);
+    cabecalho(r.addRow(["Indicador", "Valor"]));
+    [
+      ["Total de carros", A.totalCarros],
+      ["Dias com lavagem", diasComLavagem],
+      ["Média geral por dia", mediaNum(A.totalCarros, diasComLavagem)],
+      ["Melhor dia (geral)", melhorDia(mapaGeral)],
+      ["Idas ao showroom", A.totalIdas],
+      ["Carros para polimento", A.totalPolimento],
+      ["Carros fora da listagem", A.totalFora],
+      ["Carros substituídos", A.totalSubs]
+    ].forEach((linha) => {
+      const l = r.addRow(linha); corpo(l);
+      l.getCell(2).alignment = { horizontal: "right" };
+      if (linha[0] === "Média geral por dia") l.getCell(2).numFmt = "0.0";
+    });
+    r.addRow([]);
+    const cab = r.addRow(["Colaborador", ...chavesTipos.map((k) => TIPOS[k]), "Total", "Dias", "Média/dia", "Melhor dia", "Idas showroom", "Para polimento", "Fora listagem", "Substituído"]);
+    cabecalho(cab);
+    nomes.forEach((n) => {
+      const p = A.pessoas[n];
+      const nDias = Object.keys(p.dias).length;
+      const l = r.addRow([n, ...chavesTipos.map((k) => p.tipos[k]), p.total, nDias, mediaNum(p.total, nDias), melhorDia(p.dias), p.idas, p.polimento, p.foraListagem, p.substituido]);
+      corpo(l);
+      pintarLetra(l.getCell(1), argbPessoa(n));
+      l.getCell(1 + chavesTipos.length + 3).numFmt = "0.0";
+    });
+    const geral = r.addRow(["Geral", ...chavesTipos.map((k) => tiposGeral[k]), A.totalCarros, diasComLavagem,
+      mediaNum(A.totalCarros, diasComLavagem), melhorDia(mapaGeral), A.totalIdas, A.totalPolimento, A.totalFora, A.totalSubs]);
+    corpo(geral, true);
+    geral.getCell(1 + chavesTipos.length + 3).numFmt = "0.0";
+    geral.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8EEF2" } }; });
+
+    if (comGraficos) {
+      const g = wb.addWorksheet("Gráficos", { views: [{ showGridLines: false }] });
+      let topo = 1;
+      imagensDosGraficos(A).forEach((img) => {
+        g.getCell(topo, 1).value = img.titulo;
+        g.getCell(topo, 1).font = { bold: true, size: 14, color: { argb: PETROLEO } };
+        const id = wb.addImage({ base64: img.dados, extension: "png" });
+        g.addImage(id, { tl: { col: 0, row: topo }, ext: { width: 800, height: 366 } });
+        topo += 21;
+      });
+    }
+
+    const porDia = wb.addWorksheet("Por dia", { views: [{ state: "frozen", ySplit: 1 }] });
+    porDia.columns = [14, 12, 12, 12, 10, 16].map((width) => ({ width }));
+    cabecalho(porDia.addRow(["Data", ...nomes, "Total", "Idas showroom"]));
+    const todosDias = Array.from(new Set(Object.keys(A.diasGeral).concat(Object.keys(A.idasPorDia)))).sort();
+    todosDias.forEach((dia) => {
+      const g = A.diasGeral[dia] || { total: 0, porPessoa: {} };
+      const idasDia = A.idasPorDia[dia]
+        ? nomes.reduce((s, n) => s + (A.idasPorDia[dia][n] ? A.idasPorDia[dia][n].length : 0), 0)
+        : 0;
+      const l = porDia.addRow([dataExcel(dia), ...nomes.map((n) => g.porPessoa[n] || 0), g.total, idasDia]);
+      corpo(l); l.getCell(1).numFmt = "dd/mm/yyyy";
+    });
+
+    const reg = wb.addWorksheet("Registros", { views: [{ state: "frozen", ySplit: 1 }] });
+    reg.columns = [14, 10, 16, 16, 24, 16, 14, 16, 16, 14].map((width) => ({ width }));
+    cabecalho(reg.addRow(["Data", "Hora", "Colaborador", "Tipo", "Carro", "Placa/Chassi", "Cor", "Para polimento", "Fora da listagem", "Substituído"]));
+    listarRegistros(bruto.lavagens).forEach((x) => {
+      const l = reg.addRow([
+        dataExcel(x.dia), hora(x.ts), x.nome, tipoParaPlanilha(x.tipo),
+        x.carro || "", String(x.placa || ""), x.cor || "",
+        x.polimento ? "Sim" : "",
+        x.foraListagem ? "Sim" : "",
+        x.substituido ? "Sim" : ""
+      ]);
+      corpo(l);
+      l.getCell(1).numFmt = "dd/mm/yyyy";
+      l.getCell(6).numFmt = "@";
+      pintarLavador(l.getCell(3), x.nome);
+      pintarSetor(l.getCell(4), x.tipo);
+      pintarCorCelula(l.getCell(7), x.cor);
+      pintarVeiculo(l.getCell(5), x.cor);
+      pintarFundo(l.getCell(2));
+      pintarFundo(l.getCell(6));
+    });
+    reg.autoFilter = { from: "A1", to: "J1" };
+
+    const sh = wb.addWorksheet("Showroom", { views: [{ state: "frozen", ySplit: 1 }] });
+    sh.columns = [14, 10, 16].map((width) => ({ width }));
+    cabecalho(sh.addRow(["Data", "Hora", "Colaborador"]));
+    listarRegistros(bruto.showroom).forEach((x) => {
+      const l = sh.addRow([dataExcel(x.dia), hora(x.ts), x.nome]);
+      corpo(l); l.getCell(1).numFmt = "dd/mm/yyyy";
+      pintarLavador(l.getCell(3), x.nome);
+    });
+    sh.autoFilter = { from: "A1", to: "C1" };
+
+    return wb.xlsx.writeBuffer();
+  }
+
+  // Duração legível: 1h 16min
+  function fmtDuracao(ms) {
+    if (!ms || ms < 0) return "—";
+    const totalMin = Math.floor(ms / 60000);
+    const horas = Math.floor(totalMin / 60);
+    const min = totalMin % 60;
+    if (horas === 0) return `${min} min`;
+    if (min === 0) return `${horas}h`;
+    return `${horas}h ${min}min`;
+  }
+
+  async function gerarPlanilhaDiaria(diasLista) {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Painel da Lavagem";
+    wb.created = new Date();
+    const preto = { style: "thin", color: { argb: "FF000000" } };
+    const bordas = { top: preto, left: preto, bottom: preto, right: preto };
+    const LINHAS_MINIMAS = 15;
+
+    const dias = diasLista.slice().sort();
+    const porDia = {};
+    dias.forEach((d) => { porDia[d] = []; });
+    registrosDosDias(dias).forEach((x) => { (porDia[x.dia] = porDia[x.dia] || []).push(x); });
+
+    dias.forEach((dia) => {
+      const registros = porDia[dia] || [];
+      const total = Math.max(LINHAS_MINIMAS, registros.length);
+      const temMarca = registros.some((r) => r.polimento || r.foraListagem || r.substituido);
+
+      let larguraObs = 0;
+      if (temMarca) {
+        registros.forEach((r) => {
+          const t = marcasDoRegistro(r);
+          if (t.length > larguraObs) larguraObs = t.length;
+        });
+      }
+      const larguraColObs = Math.max(18, larguraObs + 3);
+
+      const colunas = temMarca
+        ? ["", "VEICULO", "CHASSI", "COR", "SETOR", "LAVADOR", "HORÁRIO", "OBSERVAÇÃO"]
+        : ["", "VEICULO", "CHASSI", "COR", "SETOR", "LAVADOR", "HORÁRIO"];
+      const numCols = colunas.length;
+
+      const ws = wb.addWorksheet(brDataNome(dia), {
+        pageSetup: {
+          paperSize: 9, orientation: "portrait",
+          fitToPage: true, fitToWidth: 1, fitToHeight: 0, horizontalCentered: true,
+          margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 }
+        }
+      });
+
+      const larguras = temMarca
+        ? [6, 24, 14, 14, 20, 22, 12, larguraColObs]
+        : [6, 24, 14, 14, 20, 22, 12];
+      ws.columns = larguras.map((w) => ({ width: w }));
+
+      ws.mergeCells("A1:D1");
+      ws.mergeCells("E1:G1");
+      ws.getCell("A1").value = "PLANILHA DE LAVAGEM";
+      ws.getCell("E1").value = "DATA: " + brData(dia);
+      const l1 = ws.getRow(1);
+      l1.height = 30;
+      for (let c = 1; c <= numCols; c++) {
+        const cel = l1.getCell(c);
+        cel.border = bordas;
+        cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2B2B2B" } };
+        cel.alignment = { horizontal: "center", vertical: "middle" };
+      }
+      ws.getCell("A1").font = { bold: true, size: 15, color: { argb: "FFFFFFFF" } };
+      ws.getCell("E1").font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+
+      const l2 = ws.getRow(2);
+      l2.height = 24;
+      colunas.forEach((texto, i) => {
+        const cel = l2.getCell(i + 1);
+        cel.value = texto;
+        cel.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+        cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2B2B2B" } };
+        cel.border = bordas;
+        cel.alignment = { horizontal: "center", vertical: "middle" };
+      });
+
+      for (let i = 0; i < total; i++) {
+        const x = registros[i];
+        const linha = ws.getRow(3 + i);
+        linha.height = 22;
+        const valores = [
+          i + 1,
+          x ? (x.carro || "") : "",
+          x ? String(x.placa || "") : "",
+          x ? (x.cor || "") : "",
+          x ? tipoParaPlanilha(x.tipo) : "",
+          x ? x.nome : "",
+          x ? hora(x.ts) : ""
+        ];
+        if (temMarca) valores.push(x ? marcasDoRegistro(x) : "");
+
+        valores.forEach((v, c) => {
+          const cel = linha.getCell(c + 1);
+          cel.value = v;
+          cel.font = { size: 12 };
+          cel.border = bordas;
+          if (c === 7) {
+            cel.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+          } else {
+            cel.alignment = { horizontal: "center", vertical: "middle" };
+          }
+          if (c === 2) cel.numFmt = "@";
+          if (x) {
+            if (c === 1) pintarVeiculo(cel, x.cor);
+            if (c === 2 || c === 6) pintarFundo(cel);
+            if (c === 3) pintarCorCelula(cel, x.cor);
+            if (c === 4) pintarSetor(cel, x.tipo);
+            if (c === 5) pintarLavador(cel, x.nome);
+          }
+          // Coluna OBSERVAÇÃO sempre com o mesmo fundo azul, tenha ou não marca
+          if (c === 7) {
+            cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ARGB_FUNDO_PADRAO } };
+            cel.font = { size: 12, bold: true, color: { argb: "FF0B2A3F" } };
+          }
+        });
+      }
+
+      // ===== RESUMO DOS LAVADORES (fundo escuro, letra branca, quebra automática) =====
+      const porLavador = {};
+      registros.forEach((r) => {
+        if (!porLavador[r.nome]) porLavador[r.nome] = { ts: [], total: 0 };
+        porLavador[r.nome].ts.push(r.ts);
+        porLavador[r.nome].total++;
+      });
+      const lavadores = Object.entries(porLavador)
+        .map(([nome, d]) => {
+          const ts = d.ts.slice().sort((a, b) => a - b);
+          const primeiro = ts[0];
+          const ultimo = ts[ts.length - 1];
+          const mediaMs = d.total > 1 ? (ultimo - primeiro) / d.total : 0;
+          return { nome, total: d.total, mediaMs };
+        })
+        .sort((a, b) => b.total - a.total);
+
+      // Média geral do dia
+      const todosTs = registros.map((r) => r.ts).sort((a, b) => a - b);
+      const primeiroDia = todosTs[0];
+      const ultimoDia = todosTs[todosTs.length - 1];
+      const totalDia = registros.length;
+      const mediaGeralMs = totalDia > 1 ? (ultimoDia - primeiroDia) / totalDia : 0;
+
+      // Largura disponível em "caracteres" (soma das widths das colunas A..última)
+      const larguraDisponivel = larguras.reduce((s, w) => s + w, 0) - 2; // margem de segurança
+
+      // Monta os blocos de texto e quebra em quantas linhas forem necessárias
+      const blocos = lavadores.map((lav) => {
+        const tempo = lav.total > 1 ? fmtDuracao(lav.mediaMs) : "—";
+        return `${lav.nome} · ${lav.total} carro${lav.total === 1 ? "" : "s"} · ${tempo}`;
+      });
+      const separador = "   |   ";
+      const linhasLavadores = [];
+      if (blocos.length === 0) {
+        linhasLavadores.push("Sem registros de lavadores neste dia.");
+      } else {
+        let atual = "";
+        for (const bloco of blocos) {
+          const tentativa = atual ? atual + separador + bloco : bloco;
+          if (tentativa.length > larguraDisponivel && atual) {
+            linhasLavadores.push(atual);
+            atual = bloco;
+          } else {
+            atual = tentativa;
+          }
+        }
+        if (atual) linhasLavadores.push(atual);
+      }
+
+      const linhaResumoTitulo = 3 + total;
+      const rTitulo = ws.getRow(linhaResumoTitulo);
+      rTitulo.height = 22;
+      ws.mergeCells(`A${linhaResumoTitulo}:${temMarca ? "H" : "G"}${linhaResumoTitulo}`);
+      const cTitulo = rTitulo.getCell(1);
+      cTitulo.value = "RESUMO DOS LAVADORES";
+      cTitulo.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+      cTitulo.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2B2B2B" } };
+      cTitulo.alignment = { horizontal: "center", vertical: "middle" };
+      for (let c = 1; c <= numCols; c++) rTitulo.getCell(c).border = bordas;
+
+      // Linha(s) dos lavadores — fundo escuro, letra branca
+      let linhaAtual = linhaResumoTitulo + 1;
+      linhasLavadores.forEach((texto) => {
+        const r = ws.getRow(linhaAtual);
+        r.height = 22;
+        ws.mergeCells(`A${linhaAtual}:${temMarca ? "H" : "G"}${linhaAtual}`);
+        const cel = r.getCell(1);
+        cel.value = texto;
+        cel.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+        cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0B2A3F" } };
+        cel.alignment = { horizontal: "center", vertical: "middle", wrapText: false };
+        for (let c = 1; c <= numCols; c++) r.getCell(c).border = bordas;
+        linhaAtual++;
+      });
+
+      // Linha do total do dia — fundo escuro, letra branca
+      const rTot = ws.getRow(linhaAtual);
+      rTot.height = 22;
+      ws.mergeCells(`A${linhaAtual}:${temMarca ? "H" : "G"}${linhaAtual}`);
+      const cTot = rTot.getCell(1);
+      const txtMediaGeral = totalDia > 1 ? fmtDuracao(mediaGeralMs) : "—";
+      cTot.value = `TOTAL DO DIA · ${totalDia} carro${totalDia === 1 ? "" : "s"} · média geral ${txtMediaGeral}`;
+      cTot.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+      cTot.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0B2A3F" } };
+      cTot.alignment = { horizontal: "center", vertical: "middle" };
+      for (let c = 1; c <= numCols; c++) rTot.getCell(c).border = bordas;
+
+      ws.pageSetup.printArea = `A1:${temMarca ? "H" : "G"}${linhaAtual}`;
+    });
+
+    return wb.xlsx.writeBuffer();
+  }
+
+  function gerarPlanilhaDeUmDia(dia) {
+    return gerarPlanilhaDiaria([dia]);
+  }
+
+  function baixarArquivo(buffer, nome) {
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = nome;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+  }
+
+  function aguardar(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+  function diasComRegistros() {
+    if (!bruto) return [];
+    const lista = [];
+    for (const [dia, regs] of Object.entries(bruto.lavagens || {})) {
+      const validos = Object.values(regs || {}).filter((r) => EQUIPE[r.nome]);
+      if (validos.length) lista.push({ dia, total: validos.length });
+    }
+    lista.sort((a, b) => (a.dia < b.dia ? 1 : -1));
+    return lista;
+  }
+
+  function abrirModalExportacao(modo) {
+    if (!bruto) { toast("Aguarde os dados carregarem."); return; }
+    if (typeof ExcelJS === "undefined" || (modo === "graficos" && typeof Chart === "undefined")) {
+      toast("A biblioteca da planilha não carregou. Verifique a internet e recarregue.");
+      return;
+    }
+    const ehSimples = modo === "simples";
+
+    const fundo = document.createElement("div");
+    fundo.className = "modal-fundo";
+
+    let tipo = "unico";
+    let selecionados = new Set();
+
+    function renderModal() {
+      if (!ehSimples) {
+        fundo.innerHTML = `
+          <div class="modal">
+            <h3>Exportar planilha</h3>
+            <div class="sub">Planilha com gráficos e tabelas</div>
+            <div class="info">
+              <b>Período:</b> ${PERIODOS[periodo]} (${intervaloTexto()})
+              <br>Serão exportados resumo, por dia, registros, showroom e os gráficos como imagem.
+            </div>
+            <div class="acoes">
+              <button class="cancelar" id="mCancelar">Cancelar</button>
+              <button class="confirmar" id="mConfirmar">Baixar</button>
+            </div>
+          </div>`;
+        fundo.querySelector("#mCancelar").onclick = () => fundo.remove();
+        fundo.onclick = (e) => { if (e.target === fundo) fundo.remove(); };
+        fundo.querySelector("#mConfirmar").onclick = () => {
+          fundo.remove();
+          dispararExportacao(modo, null, null);
+        };
+        return;
+      }
+
+      const dias = diasComRegistros();
+
+      const listaHtml = dias.length
+        ? `<div class="dias-lista" id="diasLista">
+            ${dias.map(({ dia, total }) => `
+              <button type="button" class="dia-btn ${selecionados.has(dia) ? "on" : ""}" data-dia="${dia}">
+                <b>${brData(dia)}</b>
+                <small>${total} carro${total === 1 ? "" : "s"}</small>
+              </button>`).join("")}
+          </div>`
+        : `<div class="dias-vazio">Nenhum dia com registros de lavagem.</div>`;
+
+      fundo.innerHTML = `
+        <div class="modal">
+          <h3>Exportar planilha</h3>
+          <div class="sub">Modelo da folha de lavagem</div>
+
+          <label>Dias com registros</label>
+          <div class="dias-topo">
+            <div class="contador" id="contadorDias">${selecionados.size} de ${dias.length} selecionado${selecionados.size === 1 ? "" : "s"}</div>
+            <div class="mini">
+              <button type="button" id="selTodos">Selecionar todos</button>
+              <button type="button" id="limparSel">Limpar</button>
+            </div>
+          </div>
+          ${listaHtml}
+
+          <label>Como quer o arquivo?</label>
+          <div class="tipo-grade" id="tipoGrade">
+            <button type="button" data-tipo="unico" class="${tipo === "unico" ? "on" : ""}">
+              <b>Um arquivo só</b>
+              <small>Todos os dias selecionados em abas de um único xlsx</small>
+            </button>
+            <button type="button" data-tipo="separado" class="${tipo === "separado" ? "on" : ""}">
+              <b>Um arquivo por dia</b>
+              <small>Um xlsx separado para cada dia selecionado</small>
+            </button>
+          </div>
+
+          <div class="info">
+            <b>Selecionados:</b> ${selecionados.size ? selecionados.size + " dia" + (selecionados.size === 1 ? "" : "s") : "nenhum dia"}
+            ${tipo === "separado" && selecionados.size
+              ? `<br><b>Atenção:</b> o navegador vai baixar ${selecionados.size} arquivo${selecionados.size === 1 ? "" : "s"} na sua pasta de Downloads padrão.`
+              : ""}
+          </div>
+
+          <div class="acoes">
+            <button class="cancelar" id="mCancelar">Cancelar</button>
+            <button class="confirmar" id="mConfirmar" ${selecionados.size === 0 ? "disabled" : ""}>Baixar</button>
+          </div>
+        </div>`;
+
+      fundo.querySelectorAll("[data-dia]").forEach((b) => {
+        b.onclick = () => {
+          const d = b.dataset.dia;
+          if (selecionados.has(d)) selecionados.delete(d); else selecionados.add(d);
+          renderModal();
+        };
+      });
+      fundo.querySelectorAll("[data-tipo]").forEach((b) => {
+        b.onclick = () => { tipo = b.dataset.tipo; renderModal(); };
+      });
+      const selTodos = fundo.querySelector("#selTodos");
+      if (selTodos) selTodos.onclick = () => {
+        selecionados = new Set(dias.map((x) => x.dia));
+        renderModal();
+      };
+      const limparSel = fundo.querySelector("#limparSel");
+      if (limparSel) limparSel.onclick = () => { selecionados = new Set(); renderModal(); };
+
+      fundo.querySelector("#mCancelar").onclick = () => fundo.remove();
+      fundo.onclick = (e) => { if (e.target === fundo) fundo.remove(); };
+      fundo.querySelector("#mConfirmar").onclick = () => {
+        if (selecionados.size === 0) return;
+        const diasSel = Array.from(selecionados);
+        fundo.remove();
+        dispararExportacao(modo, diasSel, tipo);
+      };
+    }
+
+    renderModal();
+    document.body.appendChild(fundo);
+  }
+
+  async function dispararExportacao(modo, diasSelecionados, tipo) {
+    if (exportando) return;
+    exportando = true;
+    $("#exportar").disabled = true;
+
+    try {
+      if (modo === "graficos") {
+        const dataFinal = hojeOperacional();
+        const nome = "painel-lavagem-" + brDataNome(dataFinal) + "-graficos.xlsx";
+        toast("Gerando planilha com gráficos…");
+        const buffer = await gerarXlsx(true);
+        baixarArquivo(buffer, nome);
+        toast("Planilha pronta: " + nome);
+      } else {
+        const dias = diasSelecionados.slice().sort();
+        if (!dias.length) { toast("Nenhum dia selecionado."); exportando = false; $("#exportar").disabled = false; return; }
+
+        if (tipo === "unico") {
+          toast("Gerando planilha com " + dias.length + " aba" + (dias.length === 1 ? "" : "s") + "…");
+          const buffer = await gerarPlanilhaDiaria(dias);
+          const nome = dias.length === 1
+            ? "planilha-lavagem-" + brDataNome(dias[0]) + ".xlsx"
+            : "planilhas-lavagem-" + brDataNome(dias[0]) + "_a_" + brDataNome(dias[dias.length - 1]) + ".xlsx";
+          baixarArquivo(buffer, nome);
+          toast("Planilha pronta: " + nome);
+        } else {
+          toast("Baixando " + dias.length + " arquivo" + (dias.length === 1 ? "" : "s") + "…");
+          for (let i = 0; i < dias.length; i++) {
+            const buffer = await gerarPlanilhaDeUmDia(dias[i]);
+            baixarArquivo(buffer, "planilha-lavagem-" + brDataNome(dias[i]) + ".xlsx");
+            await aguardar(350);
+          }
+          toast(dias.length + " arquivo" + (dias.length === 1 ? "" : "s") + " baixado" + (dias.length === 1 ? "" : "s"));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      toast("Não foi possível gerar a planilha.");
+    }
+
+    exportando = false;
+    $("#exportar").disabled = false;
+  }
+
+  function render() {
+    destruirGraficos();
+    document.querySelectorAll("#barra [data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === periodo));
+    $("#atualizado").textContent = atualizadoEm
+      ? "Atualizado às " + atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+      : (carregando ? "Carregando…" : "Sem dados");
+
+    const alvo = $("#conteudo");
+
+    if (!bruto) {
+      if (carregando) {
+        alvo.innerHTML = `<div class="msg">Carregando dados…</div>`;
+      } else {
+        alvo.innerHTML = `<div class="msg err">${erro} <button class="link" id="tentar">Tentar de novo</button></div>`;
+        $("#tentar").onclick = carregar;
+      }
+      if (!calModalAberto()) calRender();
+      return;
+    }
+
+    const A = analisar();
+    const aviso = erro ? `<div class="msg err">${erro} Mostrando os últimos dados carregados.</div>` : "";
+
+    if (A.totalCarros === 0 && A.totalIdas === 0) {
+      alvo.innerHTML = aviso + `<div class="msg">Nenhum registro em "${PERIODOS[periodo].toLowerCase()}".</div>`;
+      if (!calModalAberto()) calRender();
+      return;
+    }
+
+    const mapaGeral = {};
+    Object.keys(A.diasGeral).forEach((d) => { mapaGeral[d] = A.diasGeral[d].total; });
+    const diasComLavagem = Object.keys(mapaGeral).length;
+    const tiposGeral = {};
+    chavesTipos.forEach((k) => { tiposGeral[k] = nomes.reduce((s, n) => s + A.pessoas[n].tipos[k], 0); });
+
+    const refMeta = periodo === "hoje" ? A.totalCarros : (diasComLavagem ? A.totalCarros / diasComLavagem : 0);
+    const pctMeta = Math.min(100, Math.round((refMeta / META_DIARIA) * 100));
+    const metaHtml = `
+      <div class="meta ${pctMeta >= 100 ? "ok" : ""}">
+        <div class="linha"><span>Meta diária: ${META_DIARIA} carros</span><b>${pctMeta}%</b></div>
+        <div class="trilho"><i style="width:${pctMeta}%"></i></div>
+      </div>`;
+
+    const hero = `
+      <section class="hero">
+        <div>
+          <div class="rotulo">Carros lavados · ${PERIODOS[periodo].toLowerCase()}</div>
+          <div class="grande" id="numHero" data-valor="${A.totalCarros}">${A.totalCarros}</div>
+          <div class="sub">em ${diasComLavagem} ${diasComLavagem === 1 ? "dia" : "dias"} com lavagem</div>
+          ${metaHtml}
+        </div>
+        <div class="stats">
+          <div><span>Média por dia</span><b>${media(A.totalCarros, diasComLavagem)}</b></div>
+          <div><span>Melhor dia</span><b>${melhorDia(mapaGeral)}</b></div>
+          <div><span>Idas ao showroom</span><b>${A.totalIdas}</b></div>
+          <div><span>Para polimento</span><b>${A.totalPolimento}</b></div>
+          <div><span>Fora da listagem</span><b>${A.totalFora}</b></div>
+          <div><span>Substituídos</span><b>${A.totalSubs}</b></div>
+        </div>
+        <div class="mixwrap">${barraMix(tiposGeral, false)}${legendaMix(tiposGeral)}</div>
+      </section>`;
+
+    const ordem = nomes.slice().sort((a, b) => A.pessoas[b].total - A.pessoas[a].total);
+
+    const fichas = ordem.map((n) => {
+      const p = A.pessoas[n];
+      const nDias = Object.keys(p.dias).length;
+      const posicao = 1 + nomes.filter((x) => A.pessoas[x].total > p.total).length;
+      const medalha = ["🥇", "🥈", "🥉"][posicao - 1] || "";
+      return `
+        <article class="ficha" style="--cor:${EQUIPE[n]}">
+          <div class="cab">${avatar(n)}<h3>${n}</h3>${p.total ? `<span class="rank">${medalha} ${posicao}º lugar</span>` : ""}</div>
+          <div class="total">${p.total}<small>carros</small></div>
+          ${barraMix(p.tipos, true)}
+          <dl class="fatos">
+            <div><dt>Média por dia</dt><dd>${media(p.total, nDias)}</dd></div>
+            <div><dt>Dias registrados</dt><dd>${nDias}</dd></div>
+            <div><dt>Melhor dia</dt><dd>${melhorDia(p.dias)}</dd></div>
+            <div><dt>Idas ao showroom</dt><dd>${p.idas}</dd></div>
+            <div><dt>Para polimento</dt><dd>${p.polimento}</dd></div>
+            <div><dt>Fora da listagem</dt><dd>${p.foraListagem}</dd></div>
+            <div><dt>Substituídos</dt><dd>${p.substituido}</dd></div>
+          </dl>
+        </article>`;
+    }).join("");
+
+    const lideres = chavesTipos.map((k) => {
+      const valores = nomes.map((n) => A.pessoas[n].tipos[k]);
+      const maximo = Math.max(...valores);
+      const total = tiposGeral[k];
+
+      if (maximo === 0) {
+        return `
+          <div class="amostra vazia" style="--c:${COR_TIPO[k]}">
+            <div class="faixa"><span class="bolinha-tipo"></span>${TIPOS[k]}</div>
+            <div class="corpo">— sem registros</div>
+          </div>`;
+      }
+
+      const donos = nomes.filter((n, i) => valores[i] === maximo);
+      const empate = donos.length > 1;
+      const pct = total > 0 ? Math.round((maximo / total) * 100) : 0;
+
+      const blocosLider = donos.map((n) => `
+        <div class="lider">
+          <span class="avatar" style="--cor:${EQUIPE[n]}">${n.charAt(0)}</span>
+          <div class="dados">
+            <div class="nome" style="color:${EQUIPE[n]}">${n}</div>
+            <div class="num"><b>${maximo}</b> ${maximo === 1 ? "carro" : "carros"}</div>
+          </div>
+        </div>`).join("");
+
+      return `
+        <div class="amostra" style="--c:${COR_TIPO[k]}">
+          <div class="faixa"><span class="bolinha-tipo"></span>${TIPOS[k]}</div>
+          <div class="corpo">
+            ${empate ? `<div class="empate">Empate entre ${donos.length}</div>` : ""}
+            ${blocosLider}
+            <div class="barra"><i style="width:${pct}%"></i></div>
+            <div class="rodape">
+              <span>${maximo} de ${total} no total</span>
+              <span>${pct}%</span>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+
+    const maxGeral = Math.max(...Object.values(mapaGeral), 1);
+    const topGeral = ordenarDias(mapaGeral).slice(0, 5).map(([dia, n], i) => `
+      <div class="rk" style="--cor:var(--accent)">
+        <div class="fill" style="width:${(n / maxGeral) * 100}%"></div>
+        <span class="pos">${i + 1}</span>
+        <span class="data">${fmtData(dia)}</span>
+        <span class="espaco">${nomes.filter((x) => A.diasGeral[dia].porPessoa[x]).map((x) => chip(x, x + " " + A.diasGeral[dia].porPessoa[x])).join("")}</span>
+        <span class="n">${n}</span>
+      </div>`).join("");
+
+    const topPessoas = nomes.map((n) => {
+      const top = ordenarDias(A.pessoas[n].dias).slice(0, 3);
+      const maximo = top.length ? top[0][1] : 1;
+      return `
+        <div class="painel">
+          <h3>${avatar(n)} ${n}</h3>
+          ${top.length ? top.map(([dia, c], i) => `
+            <div class="rk" style="--cor:${EQUIPE[n]}">
+              <div class="fill" style="width:${(c / maximo) * 100}%"></div>
+              <span class="pos">${i + 1}</span><span class="data">${fmtData(dia)}</span><span class="n" style="margin-left:auto">${c}</span>
+            </div>`).join("") : `<div class="nota">Sem registros</div>`}
+        </div>`;
+    }).join("");
+
+    const diasIda = Object.keys(A.idasPorDia).sort().reverse();
+    const listaIda = diasIda.length
+      ? diasIda.map((dia) => {
+          const doDia = A.idasPorDia[dia];
+          const totalDia = nomes.reduce((s, n) => s + (doDia[n] ? doDia[n].length : 0), 0);
+          const quem = nomes.filter((n) => doDia[n]).map((n) =>
+            chip(n, n + " · " + doDia[n].slice().sort((a, b) => a - b).map(hora).join(", "))).join("");
+          return `<div class="ida-linha"><span class="data">${fmtData(dia)}</span><span class="chips">${quem}</span><span class="n">${totalDia}</span></div>`;
+        }).join("")
+      : `<div class="nota">Nenhuma ida ao showroom neste período.</div>`;
+
+    alvo.innerHTML = aviso + hero + `
+      <h2>Equipe</h2>
+      <p class="nota">Ranking por total de carros no período.</p>
+      <div class="equipe">${fichas}</div>
+
+      <h2>Evolução por dia</h2>
+      <p class="nota">Toque no nome na legenda para ver cada colaborador.</p>
+      <div class="painel"><div class="graf grande-graf"><canvas id="gDia"></canvas></div></div>
+
+      <h2>Quem mais lavou de cada tipo</h2>
+      <p class="nota">O líder de cada categoria e quanto ele representa do total daquele tipo.</p>
+      <div class="amostras">${lideres}</div>
+
+      <h2>Distribuição</h2>
+      <p class="nota" style="margin-bottom:14px">Os mesmos gráficos podem ir para a planilha pelo botão Exportar.</p>
+      <div class="grid2">
+        <div class="painel"><h3>Carros por colaborador e tipo</h3><div class="graf"><canvas id="gTipos"></canvas></div></div>
+        <div class="painel"><h3>Mistura por tipo</h3><div class="graf"><canvas id="gMix"></canvas></div></div>
+        <div class="painel"><h3>Idas ao showroom por colaborador</h3><div class="graf"><canvas id="gIdas"></canvas></div></div>
+      </div>
+
+      <h2>Melhores dias</h2>
+      <p class="nota">Os 5 dias com mais carros lavados, somando toda a equipe.</p>
+      <div class="painel">${topGeral || `<div class="nota">Sem registros</div>`}</div>
+      <p class="nota" style="margin-top:18px">Os 3 melhores dias de cada colaborador.</p>
+      <div class="tres">${topPessoas}</div>
+
+      <h2>Idas ao showroom</h2>
+      <p class="nota">Quem foi, em que dia e a que horas.</p>
+      <div class="painel">${listaIda}</div>
+    `;
+
+    criarGraficos(A);
+    animarNumero($("#numHero"));
+    if (!calModalAberto()) calRender();
+  }
+
+  document.querySelectorAll("#barra [data-p]").forEach((b) => {
+    b.onclick = () => { periodo = b.dataset.p; render(); };
+  });
+  $("#atualizar").onclick = carregar;
+  $("#btnCalendario").onclick = () => calAbrirModal();
+
+  const menuExp = $("#menuExp");
+  $("#exportar").onclick = (e) => { e.stopPropagation(); menuExp.hidden = !menuExp.hidden; };
+  menuExp.onclick = (e) => e.stopPropagation();
+  document.addEventListener("click", () => { menuExp.hidden = true; });
+  menuExp.querySelectorAll("[data-x]").forEach((b) => {
+    b.onclick = () => { menuExp.hidden = true; abrirModalExportacao(b.dataset.x); };
+  });
+
+  // ============ PESQUISA DE VEÍCULO (últimos 4 do chassi, sempre Tudo) ============
+  (function () {
+    const caixas = [...document.querySelectorAll("#pqChassi input")];
+
+    const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const limpo = (t) => t.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const termo = () => caixas.map((c) => c.value).join("");
+    const dataDe = (dia) => { const [a, m, d] = dia.split("-").map(Number); return new Date(a, m - 1, d); };
+
+    function mostrar(htmlTexto) {
+      const r = $("#pqRes");
+      r.hidden = false;
+      r.innerHTML = htmlTexto;
+    }
+
+    function pesquisaRender() {
+      const t = termo();
+      $("#pqLimpar").hidden = t.length === 0;
+      caixas.forEach((c) => c.classList.toggle("cheio", !!c.value));
+      const res = $("#pqRes");
+
+      if (t.length === 0) { res.hidden = true; res.innerHTML = ""; return; }
+      if (t.length < 4) {
+        const falta = 4 - t.length;
+        mostrar(`<div class="pq-vazio">Faltam ${falta} ${falta === 1 ? "caractere" : "caracteres"} do chassi.</div>`);
+        return;
+      }
+      if (!bruto) {
+        mostrar(carregando
+          ? `<div class="pq-vazio">Carregando dados…</div>`
+          : `<div class="pq-erro">${esc(erro || "Não foi possível carregar os dados.")} Use o botão de atualizar no topo.</div>`);
+        return;
+      }
+
+      const busca = norm(t);
+      const lista = [];
+      for (const [dia, regs] of Object.entries(bruto.lavagens || {})) {
+        for (const [id, r] of Object.entries(regs || {})) {
+          if (norm(r.placa).includes(busca)) lista.push({ dia, id, ...r });
+        }
+      }
+      lista.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+      if (!lista.length) {
+        mostrar(`<div class="pq-vazio"><b>Nenhum registro encontrado</b>Não há lavagens para o chassi ${esc(t)}. Confira os 4 últimos caracteres.</div>`);
+        return;
+      }
+
+      const itens = lista.map((r) => {
+        const d = dataDe(r.dia);
+        const dia = String(d.getDate()).padStart(2, "0");
+        const mes = d.toLocaleDateString("pt-BR", { month: "short" }).replace(/\./g, "");
+        const tags = [];
+        if (r.polimento) tags.push(`<span class="pq-tag dest">Polimento</span>`);
+        if (r.foraListagem) tags.push(`<span class="pq-tag dest">Fora da listagem</span>`);
+        if (r.substituido) tags.push(`<span class="pq-tag dest">Substituído</span>`);
+        const corTipo = COR_TIPO[r.tipo];
+        tags.push(corTipo
+          ? `<span class="pq-tag" style="background:${corTipo};border-color:transparent;color:#fff">${esc(TIPOS[r.tipo])}</span>`
+          : `<span class="pq-tag">${esc(r.tipo || "Outros")}</span>`);
+        const cor = EQUIPE[r.nome] || "#64748b";
+        return `
+          <article class="pq-item">
+            <div class="pq-data"><b>${dia}</b><span>${esc(mes)} ${d.getFullYear()}</span></div>
+            <div>
+              <div class="pq-modelo">${esc(r.carro || "Modelo não registrado")}</div>
+              <div class="pq-meta">Cor <b>${esc(r.cor || "não informada")}</b> &nbsp;·&nbsp; Chassi <b>${esc(r.placa || "-")}</b></div>
+              <div class="pq-tags">${tags.join("")}</div>
+            </div>
+            <div class="pq-lav">
+              <span class="avatar" style="--cor:${cor}">${esc((r.nome || "?").charAt(0))}</span>
+              <div><span class="quem">${esc(r.nome || "Desconhecido")}</span><span class="hr">${esc(hora(r.ts))}</span></div>
+            </div>
+          </article>`;
+      }).join("");
+
+      mostrar(`
+        <div class="pq-stats">
+          <div class="pq-stat"><small>Lavagens</small><b>${lista.length}</b></div>
+          <div class="pq-stat"><small>Última lavagem</small><b>${brData(lista[0].dia)}</b></div>
+          <div class="pq-stat"><small>Chassi</small><b>${esc(t)}</b></div>
+        </div>
+        <div class="pq-lista">${itens}</div>`);
+    }
+    window.pesquisaRender = pesquisaRender;
+
+    function preencher(inicio, texto) {
+      const l = limpo(texto);
+      if (!l) return;
+      const dados = l.length > 4 && inicio === 0 ? l.slice(-4) : l;
+      for (let k = 0; k < dados.length && inicio + k < 4; k++) caixas[inicio + k].value = dados[k];
+      caixas[Math.min(inicio + dados.length, 3)].focus();
+      pesquisaRender();
+    }
+
+    caixas.forEach((c, i) => {
+      c.addEventListener("input", () => {
+        const v = limpo(c.value);
+        c.value = "";
+        if (v) preencher(i, v); else pesquisaRender();
+      });
+      c.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !c.value && i > 0) { caixas[i - 1].value = ""; caixas[i - 1].focus(); pesquisaRender(); e.preventDefault(); }
+        else if (e.key === "ArrowLeft" && i > 0) caixas[i - 1].focus();
+        else if (e.key === "ArrowRight" && i < 3) caixas[i + 1].focus();
+      });
+      c.addEventListener("paste", (e) => {
+        e.preventDefault();
+        preencher(i, (e.clipboardData || window.clipboardData).getData("text"));
+      });
+      c.addEventListener("focus", () => c.select());
+    });
+
+    $("#pqLimpar").onclick = () => { caixas.forEach((c) => { c.value = ""; }); caixas[0].focus(); pesquisaRender(); };
+  })();
+
+  // =========================================================
+  // CALENDÁRIO DE MÉDIAS (em modal, reaproveita bruto.lavagens)
+  // =========================================================
+  let calTela = "calendario";
+  let calDiaSel = null;
+
+  function calModalAberto() {
+    const m = document.getElementById("calModal");
+    return m && !m.hidden;
+  }
+  function calAbrirModal() {
+    const m = document.getElementById("calModal");
+    if (!m) return;
+    calTela = "calendario";
+    calDiaSel = null;
+    m.hidden = false;
+    calRender();
+  }
+  function calFecharModal() {
+    const m = document.getElementById("calModal");
+    if (!m) return;
+    m.hidden = true;
+  }
+
+  function calFmtDuracao(ms) {
+    if (!ms || ms < 0) return "—";
+    const totalMin = Math.floor(ms / 60000);
+    const horas = Math.floor(totalMin / 60);
+    const min = totalMin % 60;
+    if (horas === 0) return `${min} min`;
+    if (min === 0) return `${horas}h`;
+    return `${horas}h ${min}min`;
+  }
+
+  function calDiaTemDados(dia) {
+    if (!bruto || !bruto.lavagens || !bruto.lavagens[dia]) return false;
+    return Object.values(bruto.lavagens[dia]).some(r => EQUIPE[r.nome]);
+  }
+
+  function calDadosDoDia(dia) {
+    if (!bruto || !bruto.lavagens || !bruto.lavagens[dia]) return [];
+    const pessoasDoDia = {};
+    for (const r of Object.values(bruto.lavagens[dia])) {
+      if (!EQUIPE[r.nome]) continue;
+      if (!pessoasDoDia[r.nome]) {
+        pessoasDoDia[r.nome] = { registros: [], nome: r.nome, cor: EQUIPE[r.nome] };
+      }
+      pessoasDoDia[r.nome].registros.push({ ts: r.ts });
+    }
+    const resultadoDia = [];
+    Object.values(pessoasDoDia).forEach(p => {
+      p.registros.sort((a, b) => a.ts - b.ts);
+      const totalCarros = p.registros.length;
+      const primeiro = p.registros[0];
+      const ultimo = p.registros[totalCarros - 1];
+      let mediaMs = 0;
+      if (totalCarros > 1) {
+        const tempoTotal = ultimo.ts - primeiro.ts;
+        mediaMs = tempoTotal / totalCarros;
+      }
+      resultadoDia.push({
+        nome: p.nome,
+        cor: p.cor,
+        totalCarros,
+        primeiro,
+        ultimo,
+        mediaMs
+      });
+    });
+    resultadoDia.sort((a, b) => b.totalCarros - a.totalCarros);
+    return resultadoDia;
+  }
+
+  function calRender() {
+    const alvo = document.getElementById("calConteudo");
+    if (!alvo) return;
+
+    if (carregando && !bruto) {
+      alvo.innerHTML = `<div class="cal-msg">Carregando dados…</div>`;
+      return;
+    }
+    if (!bruto) {
+      alvo.innerHTML = `<div class="cal-msg">Os dados do painel ainda não foram carregados. Use o botão de atualizar no topo.</div>`;
+      return;
+    }
+
+    if (calTela === "detalhe" && calDiaSel) {
+      const pessoas = calDadosDoDia(calDiaSel);
+      if (!pessoas.length) {
+        alvo.innerHTML = `<div class="cal-msg">Nenhum registro de equipe neste dia.</div>`;
+        return;
+      }
+      const cards = pessoas.map(p => {
+        const textoMedia = p.totalCarros > 1 ? calFmtDuracao(p.mediaMs) : "—";
+        return `
+          <div class="cal-card-pessoa" style="--cor:${p.cor}">
+            <div class="cal-avatar">${p.nome.charAt(0)}</div>
+            <h3>${p.nome}</h3>
+            <div class="cal-destaque-media">
+              <div class="cal-texto">Média de tempo para lavar um carro neste dia</div>
+              <div class="cal-valor">${textoMedia}</div>
+            </div>
+            <div class="cal-lista-dados">
+              <div class="cal-dado-linha">
+                <span class="cal-rotulo">Carros lavados</span>
+                <span class="cal-valor">${p.totalCarros}</span>
+              </div>
+              <div class="cal-dado-linha">
+                <span class="cal-rotulo">Primeiro carro</span>
+                <span class="cal-valor">${hora(p.primeiro.ts)}</span>
+              </div>
+              <div class="cal-dado-linha">
+                <span class="cal-rotulo">Último carro</span>
+                <span class="cal-valor">${hora(p.ultimo.ts)}</span>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+
+      alvo.innerHTML = `
+        <div class="cal-tela">
+          <div class="cal-header">
+            <h3>${fmtDataLonga(calDiaSel)}</h3>
+            <button id="calVoltarCal">Voltar ao calendário</button>
+          </div>
+          <div class="cal-grid-cards">${cards}</div>
+        </div>`;
+      document.getElementById("calVoltarCal").onclick = () => {
+        calTela = "calendario";
+        calDiaSel = null;
+        calRender();
+      };
+      return;
+    }
+
+    const agora = new Date();
+    if (agora.getHours() >= HORA_VIRADA) agora.setDate(agora.getDate() + 1);
+
+    const ano = agora.getFullYear();
+    const mes = agora.getMonth();
+    const nomeMes = agora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const primeiroDiaMes = new Date(ano, mes, 1);
+    const ultimoDiaMes = new Date(ano, mes + 1, 0);
+    const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    let celulas = "";
+    for (let i = 0; i < primeiroDiaMes.getDay(); i++) {
+      celulas += `<div></div>`;
+    }
+    for (let d = 1; d <= ultimoDiaMes.getDate(); d++) {
+      const dataObj = new Date(ano, mes, d);
+      const dataIso = iso(dataObj);
+      const temDados = calDiaTemDados(dataIso);
+      let qtdCarros = 0;
+      if (temDados) {
+        qtdCarros = Object.values(bruto.lavagens[dataIso]).filter(r => EQUIPE[r.nome]).length;
+      }
+      if (temDados) {
+        celulas += `
+          <button class="cal-btn-dia cal-tem-dados" data-dia="${dataIso}">
+            ${d}
+            <span class="cal-qtd-carros">${qtdCarros} carro${qtdCarros === 1 ? "" : "s"}</span>
+          </button>`;
+      } else {
+        celulas += `<div class="cal-btn-dia cal-vazio">${d}</div>`;
+      }
+    }
+
+    alvo.innerHTML = `
+      <div class="cal-tela">
+        <div class="cal-header">
+          <h3>${nomeMes}</h3>
+        </div>
+        <div class="cal-grid">
+          ${diasDaSemana.map(ds => `<div class="cal-dia-semana">${ds}</div>`).join("")}
+          ${celulas}
+        </div>
+      </div>`;
+
+    alvo.querySelectorAll(".cal-btn-dia.cal-tem-dados").forEach(btn => {
+      btn.onclick = () => {
+        calDiaSel = btn.dataset.dia;
+        calTela = "detalhe";
+        calRender();
+      };
+    });
+  }
+
+  document.getElementById("calFechar").onclick = calFecharModal;
+  document.getElementById("calModal").addEventListener("click", (e) => {
+    if (e.target.id === "calModal") calFecharModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && calModalAberto()) calFecharModal();
+  });
+
+  carregar();
+
+  let diaAtualVisivel = hojeOperacional();
+  setInterval(() => {
+    const novoDia = hojeOperacional();
+    if (novoDia !== diaAtualVisivel) {
+      diaAtualVisivel = novoDia;
+      carregar();
+    }
+  }, 60000);
+</script>
+</body>
+</html>
