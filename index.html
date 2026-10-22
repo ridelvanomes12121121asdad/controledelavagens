@@ -600,7 +600,14 @@
   const nomes = Object.keys(EQUIPE);
   const chavesTipos = Object.keys(TIPOS);
   const TEMA_CLARO = { texto: "#33424e", grade: "#dde3e8", ink: "#0b1b2b" };
-  const HORA_VIRADA = 20;
+
+  // ============================================================
+  // REGRA DE DATA — fuso fixo de São Luís / Fortaleza
+  // O dia operacional troca à meia-noite (HORA_VIRADA = 24).
+  // Se quiser voltar a virar às 20h, troque para 20 aqui.
+  // ============================================================
+  const FUSO = "America/Fortaleza";
+  const HORA_VIRADA = 24;
   const META_DIARIA = 15;
 
   let periodo = "hoje";
@@ -618,11 +625,50 @@
     const dia = String(d.getDate()).padStart(2, "0");
     return d.getFullYear() + "-" + mes + "-" + dia;
   }
-  function hojeOperacional() {
-    const d = new Date();
-    if (d.getHours() >= HORA_VIRADA) d.setDate(d.getDate() + 1);
-    return iso(d);
+
+  // Devolve o dia e a hora (0-23) de um instante, sempre no fuso de São Luís.
+  function partesNoFuso(ms) {
+    const f = new Intl.DateTimeFormat("en-CA", {
+      timeZone: FUSO,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false
+    });
+    const p = Object.fromEntries(f.formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+    return { dia: p.year + "-" + p.month + "-" + p.day, hora: Number(p.hour) % 24 };
   }
+
+  // Converte qualquer ts em milissegundos. Se vier em segundos (10 dígitos), multiplica por 1000.
+  function tsEmMs(ts) {
+    const n = Number(ts);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    if (n < 1e12) return n * 1000; // segundos -> milissegundos
+    return n;
+  }
+
+  // Dia operacional de um registro a partir do horário real.
+  function diaOperacionalDe(ts) {
+    const ms = tsEmMs(ts);
+    if (ms === null) return null;
+    const { dia, hora } = partesNoFuso(ms);
+    if (hora < HORA_VIRADA) return dia;
+    const [a, m, d] = dia.split("-").map(Number);
+    return iso(new Date(a, m - 1, d + 1));
+  }
+
+  // Hoje operacional, sempre no fuso de São Luís.
+  function hojeOperacional() {
+    return diaOperacionalDe(Date.now());
+  }
+
+  // Base do calendário / períodos: meia-noite do dia operacional de hoje (como Date local de exibição).
+  function baseOperacional() {
+    const [a, m, d] = hojeOperacional().split("-").map(Number);
+    return new Date(a, m - 1, d);
+  }
+
   function brData(dia) { return dia.split("-").reverse().join("/"); }
   function brDataNome(dia) { const p = dia.split("-"); return p[2] + "-" + p[1] + "-" + p[0]; }
   function fmtData(dia) {
@@ -634,7 +680,18 @@
     return new Date(a, m - 1, d).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   }
   function fmtDiaCurto(dia) { const p = dia.split("-"); return p[2] + "/" + p[1]; }
-  function hora(ts) { return new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+
+  // Hora exibida SEMPRE no fuso de São Luís, não importa o relógio do aparelho.
+  function hora(ts) {
+    const ms = tsEmMs(ts);
+    if (ms === null) return "—";
+    return new Date(ms).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: FUSO
+    });
+  }
+
   function media(total, dias) { return dias ? (total / dias).toFixed(1).replace(".", ",") : "—"; }
   function mediaNum(total, dias) { return dias ? Math.round((total / dias) * 10) / 10 : null; }
 
@@ -743,10 +800,12 @@
     requestAnimationFrame(passo);
   }
 
+  // Busca sem cache: o Firebase pode devolver resposta velha se o navegador cachear.
   async function buscar(caminho) {
+    const url = DB + "/" + caminho + ".json?_=" + Date.now();
     let resposta;
     try {
-      resposta = await fetch(DB + "/" + caminho + ".json");
+      resposta = await fetch(url, { cache: "no-store" });
     } catch (e) {
       throw new Error("Sem conexão com o banco de dados. Verifique a internet.");
     }
@@ -757,6 +816,26 @@
     return (await resposta.json()) || {};
   }
 
+  // ============================================================
+  // REINDEXAÇÃO — a peça central da correção
+  // Cada registro é recolocado no dia operacional correto a partir do ts.
+  // Se não tiver ts, mantém a chave original (não some, não muda de dia).
+  // ============================================================
+  function reindexar(origem) {
+    const saida = {};
+    if (!origem || typeof origem !== "object") return saida;
+    for (const [diaGravado, regs] of Object.entries(origem)) {
+      if (!regs || typeof regs !== "object") continue;
+      for (const [id, r] of Object.entries(regs)) {
+        const diaCalculado = r && r.ts ? diaOperacionalDe(r.ts) : null;
+        const dia = diaCalculado || diaGravado;
+        if (!saida[dia]) saida[dia] = {};
+        saida[dia][id] = r;
+      }
+    }
+    return saida;
+  }
+
   async function carregar() {
     carregando = true;
     erro = "";
@@ -765,7 +844,10 @@
     if (window.pesquisaRender) pesquisaRender();
     try {
       const [lavagens, showroom] = await Promise.all([buscar("lavagens"), buscar("showroom")]);
-      bruto = { lavagens: lavagens, showroom: showroom };
+      bruto = {
+        lavagens: reindexar(lavagens),
+        showroom: reindexar(showroom)
+      };
       atualizadoEm = new Date();
     } catch (e) {
       erro = e.message;
@@ -777,8 +859,7 @@
   }
 
   function inicioDoPeriodo() {
-    const d = new Date();
-    if (d.getHours() >= HORA_VIRADA) d.setDate(d.getDate() + 1);
+    const d = baseOperacional();
     if (periodo === "hoje") return iso(d);
     if (periodo === "sete") { d.setDate(d.getDate() - 6); return iso(d); }
     if (periodo === "trinta") { d.setDate(d.getDate() - 29); return iso(d); }
@@ -792,8 +873,7 @@
   }
   function ultimosDias(n) {
     const lista = [];
-    const base = new Date();
-    if (base.getHours() >= HORA_VIRADA) base.setDate(base.getDate() + 1);
+    const base = baseOperacional();
     for (let i = 0; i < n; i++) {
       const d = new Date(base);
       d.setDate(d.getDate() - i);
@@ -978,7 +1058,7 @@
         saida.push({ dia, id, ...r });
       }
     }
-    return saida.sort((a, b) => a.ts - b.ts);
+    return saida.sort((a, b) => tsEmMs(a.ts) - tsEmMs(b.ts));
   }
 
   function registrosDosDias(diasLista) {
@@ -991,7 +1071,7 @@
         saida.push({ dia, id, ...r });
       }
     }
-    return saida.sort((a, b) => a.ts - b.ts);
+    return saida.sort((a, b) => tsEmMs(a.ts) - tsEmMs(b.ts));
   }
 
   async function gerarXlsx(comGraficos) {
@@ -1250,8 +1330,10 @@
       // ===== RESUMO DOS LAVADORES (fundo escuro, letra branca, quebra automática) =====
       const porLavador = {};
       registros.forEach((r) => {
+        const ms = tsEmMs(r.ts);
+        if (ms === null) return;
         if (!porLavador[r.nome]) porLavador[r.nome] = { ts: [], total: 0 };
-        porLavador[r.nome].ts.push(r.ts);
+        porLavador[r.nome].ts.push(ms);
         porLavador[r.nome].total++;
       });
       const lavadores = Object.entries(porLavador)
@@ -1265,11 +1347,11 @@
         .sort((a, b) => b.total - a.total);
 
       // Média geral do dia
-      const todosTs = registros.map((r) => r.ts).sort((a, b) => a - b);
+      const todosTs = registros.map((r) => tsEmMs(r.ts)).filter((v) => v !== null).sort((a, b) => a - b);
       const primeiroDia = todosTs[0];
       const ultimoDia = todosTs[todosTs.length - 1];
       const totalDia = registros.length;
-      const mediaGeralMs = totalDia > 1 ? (ultimoDia - primeiroDia) / totalDia : 0;
+      const mediaGeralMs = totalDia > 1 && primeiroDia !== undefined ? (ultimoDia - primeiroDia) / totalDia : 0;
 
       // Largura disponível em "caracteres" (soma das widths das colunas A..última)
       const larguraDisponivel = larguras.reduce((s, w) => s + w, 0) - 2; // margem de segurança
@@ -1539,7 +1621,7 @@
     destruirGraficos();
     document.querySelectorAll("#barra [data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === periodo));
     $("#atualizado").textContent = atualizadoEm
-      ? "Atualizado às " + atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+      ? "Atualizado às " + atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: FUSO })
       : (carregando ? "Carregando…" : "Sem dados");
 
     const alvo = $("#conteudo");
@@ -1692,7 +1774,7 @@
           const doDia = A.idasPorDia[dia];
           const totalDia = nomes.reduce((s, n) => s + (doDia[n] ? doDia[n].length : 0), 0);
           const quem = nomes.filter((n) => doDia[n]).map((n) =>
-            chip(n, n + " · " + doDia[n].slice().sort((a, b) => a - b).map(hora).join(", "))).join("");
+            chip(n, n + " · " + doDia[n].slice().sort((a, b) => tsEmMs(a) - tsEmMs(b)).map(hora).join(", "))).join("");
           return `<div class="ida-linha"><span class="data">${fmtData(dia)}</span><span class="chips">${quem}</span><span class="n">${totalDia}</span></div>`;
         }).join("")
       : `<div class="nota">Nenhuma ida ao showroom neste período.</div>`;
@@ -1790,7 +1872,7 @@
           if (norm(r.placa).includes(busca)) lista.push({ dia, id, ...r });
         }
       }
-      lista.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+      lista.sort((a, b) => (tsEmMs(b.ts) || 0) - (tsEmMs(a.ts) || 0));
 
       if (!lista.length) {
         mostrar(`<div class="pq-vazio"><b>Nenhum registro encontrado</b>Não há lavagens para o chassi ${esc(t)}. Confira os 4 últimos caracteres.</div>`);
@@ -1909,10 +1991,12 @@
     const pessoasDoDia = {};
     for (const r of Object.values(bruto.lavagens[dia])) {
       if (!EQUIPE[r.nome]) continue;
+      const ms = tsEmMs(r.ts);
+      if (ms === null) continue;
       if (!pessoasDoDia[r.nome]) {
         pessoasDoDia[r.nome] = { registros: [], nome: r.nome, cor: EQUIPE[r.nome] };
       }
-      pessoasDoDia[r.nome].registros.push({ ts: r.ts });
+      pessoasDoDia[r.nome].registros.push({ ts: ms });
     }
     const resultadoDia = [];
     Object.values(pessoasDoDia).forEach(p => {
@@ -2000,8 +2084,7 @@
       return;
     }
 
-    const agora = new Date();
-    if (agora.getHours() >= HORA_VIRADA) agora.setDate(agora.getDate() + 1);
+    const agora = baseOperacional();
 
     const ano = agora.getFullYear();
     const mes = agora.getMonth();
