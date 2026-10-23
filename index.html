@@ -325,9 +325,9 @@
   .pq-sub { color: var(--mut); font-size: 14px; }
   .pq-linha { display: grid; grid-template-columns: auto 1fr; gap: 16px 36px; align-items: end; }
   .pq-rot { display: block; font-size: 13px; font-weight: 600; color: var(--mut); margin-bottom: 8px; }
-  .pq-chassi { display: flex; gap: 10px; align-items: center; }
+  .pq-chassi { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .pq-chassi input {
-    width: 62px; height: 68px; padding: 0; text-align: center; text-transform: uppercase;
+    width: 54px; height: 68px; padding: 0; text-align: center; text-transform: uppercase;
     font: 700 30px var(--font-b); color: var(--ink); caret-color: var(--accent);
     background: var(--bg); border: 2px solid var(--line); border-radius: 12px;
     transition: border-color .15s, box-shadow .15s;
@@ -365,8 +365,8 @@
   @media (max-width: 760px) {
     .pq-linha { grid-template-columns: 1fr; }
     .pq-card { padding: 18px 16px 20px; }
-    .pq-chassi input { width: 100%; max-width: 70px; height: 62px; font-size: 28px; }
-    .pq-chassi { gap: 8px; }
+    .pq-chassi input { width: 44px; height: 58px; font-size: 24px; }
+    .pq-chassi { gap: 6px; }
     .pq-item { grid-template-columns: 56px 1fr; gap: 12px; }
     .pq-lav { grid-column: 1 / -1; flex-direction: row-reverse; justify-content: flex-end; text-align: left; padding-top: 10px; border-top: 1px solid var(--line); }
   }
@@ -551,16 +551,19 @@
     <div class="pq-card">
       <div class="pq-topo">
         <div class="pq-titulo">Pesquisar veículo</div>
-        <div class="pq-sub">Histórico de lavagens pelos últimos 4 caracteres do chassi</div>
+        <div class="pq-sub">Histórico de lavagens pelo chassi (novo) ou placa (oficina)</div>
       </div>
       <div class="pq-linha">
         <div>
-          <span class="pq-rot" id="pqRot">Chassi</span>
+          <span class="pq-rot" id="pqRot">Chassi / Placa</span>
           <div class="pq-chassi" id="pqChassi" role="group" aria-labelledby="pqRot">
             <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 1">
             <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 2">
             <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 3">
             <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 4">
+            <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 5">
+            <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 6">
+            <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 7">
             <button type="button" class="pq-limpar" id="pqLimpar" hidden>Limpar</button>
           </div>
         </div>
@@ -601,11 +604,6 @@
   const chavesTipos = Object.keys(TIPOS);
   const TEMA_CLARO = { texto: "#33424e", grade: "#dde3e8", ink: "#0b1b2b" };
 
-  // ============================================================
-  // REGRA DE DATA — fuso fixo de São Luís / Fortaleza
-  // O dia operacional troca à meia-noite (HORA_VIRADA = 24).
-  // Se quiser voltar a virar às 20h, troque para 20 aqui.
-  // ============================================================
   const FUSO = "America/Fortaleza";
   const HORA_VIRADA = 24;
   const META_DIARIA = 15;
@@ -626,7 +624,6 @@
     return d.getFullYear() + "-" + mes + "-" + dia;
   }
 
-  // Devolve o dia e a hora (0-23) de um instante, sempre no fuso de São Luís.
   function partesNoFuso(ms) {
     const f = new Intl.DateTimeFormat("en-CA", {
       timeZone: FUSO,
@@ -640,15 +637,13 @@
     return { dia: p.year + "-" + p.month + "-" + p.day, hora: Number(p.hour) % 24 };
   }
 
-  // Converte qualquer ts em milissegundos. Se vier em segundos (10 dígitos), multiplica por 1000.
   function tsEmMs(ts) {
     const n = Number(ts);
     if (!Number.isFinite(n) || n <= 0) return null;
-    if (n < 1e12) return n * 1000; // segundos -> milissegundos
+    if (n < 1e12) return n * 1000;
     return n;
   }
 
-  // Dia operacional de um registro a partir do horário real.
   function diaOperacionalDe(ts) {
     const ms = tsEmMs(ts);
     if (ms === null) return null;
@@ -658,12 +653,10 @@
     return iso(new Date(a, m - 1, d + 1));
   }
 
-  // Hoje operacional, sempre no fuso de São Luís.
   function hojeOperacional() {
     return diaOperacionalDe(Date.now());
   }
 
-  // Base do calendário / períodos: meia-noite do dia operacional de hoje (como Date local de exibição).
   function baseOperacional() {
     const [a, m, d] = hojeOperacional().split("-").map(Number);
     return new Date(a, m - 1, d);
@@ -681,7 +674,6 @@
   }
   function fmtDiaCurto(dia) { const p = dia.split("-"); return p[2] + "/" + p[1]; }
 
-  // Hora exibida SEMPRE no fuso de São Luís, não importa o relógio do aparelho.
   function hora(ts) {
     const ms = tsEmMs(ts);
     if (ms === null) return "—";
@@ -800,7 +792,6 @@
     requestAnimationFrame(passo);
   }
 
-  // Busca sem cache: o Firebase pode devolver resposta velha se o navegador cachear.
   async function buscar(caminho) {
     const url = DB + "/" + caminho + ".json?_=" + Date.now();
     let resposta;
@@ -816,11 +807,6 @@
     return (await resposta.json()) || {};
   }
 
-  // ============================================================
-  // REINDEXAÇÃO — a peça central da correção
-  // Cada registro é recolocado no dia operacional correto a partir do ts.
-  // Se não tiver ts, mantém a chave original (não some, não muda de dia).
-  // ============================================================
   function reindexar(origem) {
     const saida = {};
     if (!origem || typeof origem !== "object") return saida;
@@ -1169,8 +1155,8 @@
     });
 
     const reg = wb.addWorksheet("Registros", { views: [{ state: "frozen", ySplit: 1 }] });
-    reg.columns = [14, 10, 16, 16, 24, 16, 14, 16, 16, 14].map((width) => ({ width }));
-    cabecalho(reg.addRow(["Data", "Hora", "Colaborador", "Tipo", "Carro", "Placa/Chassi", "Cor", "Para polimento", "Fora da listagem", "Substituído"]));
+    reg.columns = [14, 10, 16, 16, 24, 22, 14, 16, 16, 14].map((width) => ({ width }));
+    cabecalho(reg.addRow(["Data", "Hora", "Colaborador", "Tipo", "Carro", "Chassi/Placa", "Cor", "Para polimento", "Fora da listagem", "Substituído"]));
     listarRegistros(bruto.lavagens).forEach((x) => {
       const l = reg.addRow([
         dataExcel(x.dia), hora(x.ts), x.nome, tipoParaPlanilha(x.tipo),
@@ -1204,7 +1190,6 @@
     return wb.xlsx.writeBuffer();
   }
 
-  // Duração legível: 1h 16min
   function fmtDuracao(ms) {
     if (!ms || ms < 0) return "—";
     const totalMin = Math.floor(ms / 60000);
@@ -1242,9 +1227,10 @@
       }
       const larguraColObs = Math.max(18, larguraObs + 3);
 
+      // Alterado para CHASSI/PLACA
       const colunas = temMarca
-        ? ["", "VEICULO", "CHASSI", "COR", "SETOR", "LAVADOR", "HORÁRIO", "OBSERVAÇÃO"]
-        : ["", "VEICULO", "CHASSI", "COR", "SETOR", "LAVADOR", "HORÁRIO"];
+        ? ["", "VEICULO", "CHASSI/PLACA", "COR", "SETOR", "LAVADOR", "HORÁRIO", "OBSERVAÇÃO"]
+        : ["", "VEICULO", "CHASSI/PLACA", "COR", "SETOR", "LAVADOR", "HORÁRIO"];
       const numCols = colunas.length;
 
       const ws = wb.addWorksheet(brDataNome(dia), {
@@ -1256,8 +1242,8 @@
       });
 
       const larguras = temMarca
-        ? [6, 24, 14, 14, 20, 22, 12, larguraColObs]
-        : [6, 24, 14, 14, 20, 22, 12];
+        ? [6, 24, 16, 14, 20, 22, 12, larguraColObs]
+        : [6, 24, 16, 14, 20, 22, 12];
       ws.columns = larguras.map((w) => ({ width: w }));
 
       ws.mergeCells("A1:D1");
@@ -1319,7 +1305,6 @@
             if (c === 4) pintarSetor(cel, x.tipo);
             if (c === 5) pintarLavador(cel, x.nome);
           }
-          // Coluna OBSERVAÇÃO sempre com o mesmo fundo azul, tenha ou não marca
           if (c === 7) {
             cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ARGB_FUNDO_PADRAO } };
             cel.font = { size: 12, bold: true, color: { argb: "FF0B2A3F" } };
@@ -1327,7 +1312,6 @@
         });
       }
 
-      // ===== RESUMO DOS LAVADORES (fundo escuro, letra branca, quebra automática) =====
       const porLavador = {};
       registros.forEach((r) => {
         const ms = tsEmMs(r.ts);
@@ -1346,17 +1330,14 @@
         })
         .sort((a, b) => b.total - a.total);
 
-      // Média geral do dia
       const todosTs = registros.map((r) => tsEmMs(r.ts)).filter((v) => v !== null).sort((a, b) => a - b);
       const primeiroDia = todosTs[0];
       const ultimoDia = todosTs[todosTs.length - 1];
       const totalDia = registros.length;
       const mediaGeralMs = totalDia > 1 && primeiroDia !== undefined ? (ultimoDia - primeiroDia) / totalDia : 0;
 
-      // Largura disponível em "caracteres" (soma das widths das colunas A..última)
-      const larguraDisponivel = larguras.reduce((s, w) => s + w, 0) - 2; // margem de segurança
+      const larguraDisponivel = larguras.reduce((s, w) => s + w, 0) - 2;
 
-      // Monta os blocos de texto e quebra em quantas linhas forem necessárias
       const blocos = lavadores.map((lav) => {
         const tempo = lav.total > 1 ? fmtDuracao(lav.mediaMs) : "—";
         return `${lav.nome} · ${lav.total} carro${lav.total === 1 ? "" : "s"} · ${tempo}`;
@@ -1390,7 +1371,6 @@
       cTitulo.alignment = { horizontal: "center", vertical: "middle" };
       for (let c = 1; c <= numCols; c++) rTitulo.getCell(c).border = bordas;
 
-      // Linha(s) dos lavadores — fundo escuro, letra branca
       let linhaAtual = linhaResumoTitulo + 1;
       linhasLavadores.forEach((texto) => {
         const r = ws.getRow(linhaAtual);
@@ -1405,7 +1385,6 @@
         linhaAtual++;
       });
 
-      // Linha do total do dia — fundo escuro, letra branca
       const rTot = ws.getRow(linhaAtual);
       rTot.height = 22;
       ws.mergeCells(`A${linhaAtual}:${temMarca ? "H" : "G"}${linhaAtual}`);
@@ -1830,7 +1809,7 @@
     b.onclick = () => { menuExp.hidden = true; abrirModalExportacao(b.dataset.x); };
   });
 
-  // ============ PESQUISA DE VEÍCULO (últimos 4 do chassi, sempre Tudo) ============
+  // ============ PESQUISA DE VEÍCULO ============
   (function () {
     const caixas = [...document.querySelectorAll("#pqChassi input")];
 
@@ -1853,11 +1832,12 @@
       const res = $("#pqRes");
 
       if (t.length === 0) { res.hidden = true; res.innerHTML = ""; return; }
+      
       if (t.length < 4) {
-        const falta = 4 - t.length;
-        mostrar(`<div class="pq-vazio">Faltam ${falta} ${falta === 1 ? "caractere" : "caracteres"} do chassi.</div>`);
+        mostrar(`<div class="pq-vazio">Digite pelo menos 4 caracteres do chassi ou placa.</div>`);
         return;
       }
+      
       if (!bruto) {
         mostrar(carregando
           ? `<div class="pq-vazio">Carregando dados…</div>`
@@ -1875,7 +1855,7 @@
       lista.sort((a, b) => (tsEmMs(b.ts) || 0) - (tsEmMs(a.ts) || 0));
 
       if (!lista.length) {
-        mostrar(`<div class="pq-vazio"><b>Nenhum registro encontrado</b>Não há lavagens para o chassi ${esc(t)}. Confira os 4 últimos caracteres.</div>`);
+        mostrar(`<div class="pq-vazio"><b>Nenhum registro encontrado</b>Não há lavagens para o chassi/placa ${esc(t)}. Confira os caracteres.</div>`);
         return;
       }
 
@@ -1897,7 +1877,7 @@
             <div class="pq-data"><b>${dia}</b><span>${esc(mes)} ${d.getFullYear()}</span></div>
             <div>
               <div class="pq-modelo">${esc(r.carro || "Modelo não registrado")}</div>
-              <div class="pq-meta">Cor <b>${esc(r.cor || "não informada")}</b> &nbsp;·&nbsp; Chassi <b>${esc(r.placa || "-")}</b></div>
+              <div class="pq-meta">Cor <b>${esc(r.cor || "não informada")}</b> &nbsp;·&nbsp; Chassi/Placa <b>${esc(r.placa || "-")}</b></div>
               <div class="pq-tags">${tags.join("")}</div>
             </div>
             <div class="pq-lav">
@@ -1911,7 +1891,7 @@
         <div class="pq-stats">
           <div class="pq-stat"><small>Lavagens</small><b>${lista.length}</b></div>
           <div class="pq-stat"><small>Última lavagem</small><b>${brData(lista[0].dia)}</b></div>
-          <div class="pq-stat"><small>Chassi</small><b>${esc(t)}</b></div>
+          <div class="pq-stat"><small>Chassi/Placa</small><b>${esc(t)}</b></div>
         </div>
         <div class="pq-lista">${itens}</div>`);
     }
@@ -1920,9 +1900,9 @@
     function preencher(inicio, texto) {
       const l = limpo(texto);
       if (!l) return;
-      const dados = l.length > 4 && inicio === 0 ? l.slice(-4) : l;
-      for (let k = 0; k < dados.length && inicio + k < 4; k++) caixas[inicio + k].value = dados[k];
-      caixas[Math.min(inicio + dados.length, 3)].focus();
+      const dados = l.length > 7 && inicio === 0 ? l.slice(-7) : l;
+      for (let k = 0; k < dados.length && inicio + k < 7; k++) caixas[inicio + k].value = dados[k];
+      caixas[Math.min(inicio + dados.length, 6)].focus();
       pesquisaRender();
     }
 
@@ -1935,7 +1915,7 @@
       c.addEventListener("keydown", (e) => {
         if (e.key === "Backspace" && !c.value && i > 0) { caixas[i - 1].value = ""; caixas[i - 1].focus(); pesquisaRender(); e.preventDefault(); }
         else if (e.key === "ArrowLeft" && i > 0) caixas[i - 1].focus();
-        else if (e.key === "ArrowRight" && i < 3) caixas[i + 1].focus();
+        else if (e.key === "ArrowRight" && i < 6) caixas[i + 1].focus();
       });
       c.addEventListener("paste", (e) => {
         e.preventDefault();
