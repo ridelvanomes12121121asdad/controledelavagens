@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root {
     --bg: #eef2f7;
@@ -205,11 +206,19 @@
   .meta .trilho { height: 10px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
   .meta .trilho i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22d3ee, #a5f3fc); }
   .meta.ok .trilho i { background: linear-gradient(90deg, #34d399, #bbf7d0); }
-  .stats { align-self: end; }
-  .stats div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.18); }
-  .stats div:last-child { border-bottom: 0; }
-  .stats span { opacity: .78; }
-  .stats b { font: 600 24px var(--font-d); text-align: right; font-variant-numeric: tabular-nums; }
+  .stats { align-self: end; display: grid; gap: 22px; }
+  .stats .grupo-tit { font: 600 13px var(--font-b); letter-spacing: .08em; text-transform: uppercase; opacity: .65; margin-bottom: 2px; }
+  .stats .st { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.18); }
+  .stats .grupo .st:last-child { border-bottom: 0; }
+  .stats .st-rot { display: flex; flex-direction: column; gap: 5px; }
+  .stats .st-rot > span { opacity: .9; }
+  .stats .st-rot small { font-size: 13px; opacity: .65; }
+  .stats .st-val { text-align: right; font: 600 28px/1.05 var(--font-d); font-variant-numeric: tabular-nums; }
+  .stats .st-val small { display: block; font: 500 13px var(--font-b); opacity: .7; margin-top: 3px; }
+  .hero-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .hero-pills .pill { background: rgba(255,255,255,.12); border-radius: 12px; padding: 10px 16px; }
+  .hero-pills .pill small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; opacity: .75; }
+  .hero-pills .pill b { font: 700 26px var(--font-d); }
   .mixwrap { grid-column: 1 / -1; }
   .mix { display: flex; height: 14px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.16); gap: 2px; }
   .mix i { display: block; height: 100%; min-width: 3px; }
@@ -302,6 +311,69 @@
   }
   #toast.on { opacity: 1; }
 
+  /* ===== Faltas no período ===== */
+  .faltas-alerta {
+    margin-top: 16px; border-radius: 18px; padding: 20px 24px;
+    background: #b3382c; color: #fff;
+    box-shadow: 0 10px 30px rgba(179,56,44,.35);
+  }
+  .faltas-alerta.zero {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    background: #166534; box-shadow: 0 10px 30px rgba(22,101,52,.3);
+  }
+  .faltas-alerta h3 { font: 700 24px var(--font-d); letter-spacing: .02em; text-transform: uppercase; }
+  .faltas-alerta .nomes { font: 600 22px var(--font-d); margin-left: auto; text-align: right; }
+  .faltas-topo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .faltas-total { margin-left: auto; background: #fff; color: #b3382c; border-radius: 99px; padding: 4px 14px; font: 700 18px var(--font-d); }
+  .faltas-lista { margin-top: 14px; display: grid; gap: 10px; }
+  .falta-pessoa { background: rgba(255,255,255,.14); border-radius: 14px; padding: 12px 16px; display: grid; grid-template-columns: minmax(130px, auto) 1fr; gap: 8px 18px; align-items: center; }
+  .falta-nome { font: 700 22px var(--font-d); display: flex; flex-direction: column; }
+  .falta-nome small { font: 500 13px var(--font-b); opacity: .8; }
+  .falta-dias { display: flex; flex-wrap: wrap; gap: 8px; }
+  .falta-dia { background: #fff; color: #7f1d1d; border-radius: 10px; padding: 5px 12px; font-size: 14px; font-weight: 600; }
+  .falta-dia b { font: 700 19px var(--font-d); margin-right: 5px; }
+
+  /* ===== Idas ao showroom em sanfona ===== */
+  .sanfona { background: var(--panel); border-radius: 14px; box-shadow: var(--sombra); margin-bottom: 10px; overflow: hidden; }
+  .sanfona summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px;
+    padding: 18px 20px; font: 700 22px var(--font-d);
+  }
+  .sanfona summary::-webkit-details-marker { display: none; }
+  .sanfona summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .sanfona summary::after {
+    content: ""; width: 9px; height: 9px; margin: 0 4px 4px 4px;
+    border-right: 3px solid var(--mut); border-bottom: 3px solid var(--mut);
+    transform: rotate(45deg); transition: transform .2s;
+  }
+  .sanfona[open] summary::after { transform: rotate(-135deg); margin-bottom: -4px; }
+  .sanfona .sf-qtd { margin-left: auto; color: var(--accent); }
+  .sf-lista { border-top: 1px solid var(--line); padding: 6px 20px 12px; }
+  .sf-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .sf-linha:last-child { border-bottom: 0; }
+  .sf-linha .sep { color: var(--mut); }
+  .sf-linha .sf-hora { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sf-linha .sf-det { color: var(--mut); }
+
+  /* ===== Melhores dias ===== */
+  .md-item { display: grid; grid-template-columns: 44px 1fr auto; gap: 16px; align-items: center; padding: 16px 4px; border-bottom: 1px solid var(--line); }
+  .md-item:last-child { border-bottom: 0; }
+  .md-linha { display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+  .md-pos { width: 40px; height: 40px; border-radius: 50%; background: var(--soft); color: var(--mut); display: grid; place-items: center; font: 700 20px var(--font-d); }
+  .primeiro .md-pos { background: var(--accent); color: var(--on-accent); }
+  .md-data b { display: block; font: 700 20px var(--font-d); line-height: 1.1; }
+  .md-data small { color: var(--mut); font-size: 14px; }
+  .md-pessoas { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 14px; color: var(--mut); }
+  .md-pessoas span { display: inline-flex; align-items: center; gap: 6px; }
+  .md-pessoas i { width: 10px; height: 10px; border-radius: 50%; background: var(--cor); }
+  .md-pessoas b { color: var(--ink); font-weight: 700; }
+  .md-barra { height: 6px; border-radius: 99px; background: var(--soft); margin-top: 10px; overflow: hidden; }
+  .md-barra i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .md-n { text-align: right; }
+  .md-n b { display: block; font: 700 34px/1 var(--font-d); font-variant-numeric: tabular-nums; }
+  .md-n small { color: var(--mut); font-size: 13px; }
+  .md-linha .md-n b { font-size: 28px; }
+
   @media (max-width: 760px) {
     .hero { grid-template-columns: 1fr; padding: 24px 20px; }
     .marca h1 { font-size: 24px; }
@@ -310,11 +382,14 @@
     .modal { padding: 20px; }
     .modal h3 { font-size: 22px; }
     .modal .tipo-grade { grid-template-columns: 1fr; }
+    .faltas-alerta .nomes { margin-left: 0; text-align: left; }
+    .falta-pessoa { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
     .btn-icone.gira svg { animation: none; }
     .ficha, .amostra { transition: none; }
     .ficha:hover, .amostra:hover { transform: none; }
+    .sanfona summary::after { transition: none; }
   }
 
   /* ===== Pesquisa de veículo (topo) ===== */
@@ -539,7 +614,6 @@
         </button>
         <div class="pop" id="menuExp" hidden>
           <button data-x="simples"><b>Planilha</b><span>Modelo da folha de lavagem, uma aba por dia, com horário</span></button>
-          <button data-x="graficos"><b>Planilha com gráficos</b><span>Resumo, tabelas, registros e os gráficos como imagem</span></button>
         </div>
       </div>
     </div>
@@ -606,7 +680,6 @@
 
   const FUSO = "America/Fortaleza";
   const HORA_VIRADA = 24;
-  const META_DIARIA = 15;
 
   let periodo = "hoje";
   let bruto = null;
@@ -673,6 +746,25 @@
     return new Date(a, m - 1, d).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   }
   function fmtDiaCurto(dia) { const p = dia.split("-"); return p[2] + "/" + p[1]; }
+
+  function partesDia(dia) {
+    const [a, m, d] = dia.split("-").map(Number);
+    const s = new Date(a, m - 1, d).toLocaleDateString("pt-BR", { weekday: "long" });
+    return {
+      semana: s.charAt(0).toUpperCase() + s.slice(1),
+      data: String(d).padStart(2, "0") + "/" + String(m).padStart(2, "0") + "/" + a
+    };
+  }
+  function carrosTxt(n) { return n === 1 ? "carro" : "carros"; }
+
+  function escapar(t) {
+    return String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function fmtDiaSanfona(dia) {
+    const [a, m, d] = dia.split("-").map(Number);
+    const s = new Date(a, m - 1, d).toLocaleDateString("pt-BR", { weekday: "long" });
+    return s.charAt(0).toUpperCase() + s.slice(1) + ", " + String(d).padStart(2, "0") + "/" + String(m).padStart(2, "0");
+  }
 
   function hora(ts) {
     const ms = tsEmMs(ts);
@@ -829,10 +921,15 @@
     render();
     if (window.pesquisaRender) pesquisaRender();
     try {
-      const [lavagens, showroom] = await Promise.all([buscar("lavagens"), buscar("showroom")]);
+      const [lavagens, showroom, faltas] = await Promise.all([
+        buscar("lavagens"),
+        buscar("showroom"),
+        buscar("faltas").catch(() => ({}))
+      ]);
       bruto = {
         lavagens: reindexar(lavagens),
-        showroom: reindexar(showroom)
+        showroom: reindexar(showroom),
+        faltas: reindexar(faltas)
       };
       atualizadoEm = new Date();
     } catch (e) {
@@ -879,7 +976,8 @@
         foraListagem: 0,
         substituido: 0,
         dias: {},
-        idas: 0
+        idas: 0,
+        faltas: 0
       };
     });
     const diasGeral = {};
@@ -914,10 +1012,23 @@
         p.idas++;
         totalIdas++;
         const d = idasPorDia[dia] || (idasPorDia[dia] = {});
-        (d[r.nome] = d[r.nome] || []).push(r.ts);
+        (d[r.nome] = d[r.nome] || []).push({ ts: r.ts, detalhe: r.detalhe || "" });
       }
     }
-    return { pessoas, diasGeral, idasPorDia, totalCarros, totalIdas, totalPolimento, totalFora, totalSubs };
+    const faltasPorDia = {};
+    let totalFaltas = 0;
+    for (const [dia, registros] of Object.entries(bruto.faltas || {})) {
+      if (dia < inicio) continue;
+      for (const r of Object.values(registros || {})) {
+        const p = pessoas[r.nome];
+        if (!p) continue;
+        p.faltas++;
+        totalFaltas++;
+        const d = faltasPorDia[dia] || (faltasPorDia[dia] = {});
+        d[r.nome] = (d[r.nome] || 0) + 1;
+      }
+    }
+    return { pessoas, diasGeral, idasPorDia, totalCarros, totalIdas, totalPolimento, totalFora, totalSubs, totalFaltas, faltasPorDia };
   }
 
   const fundoBranco = {
@@ -1417,6 +1528,17 @@
     setTimeout(() => URL.revokeObjectURL(link.href), 4000);
   }
 
+  // Baixa qualquer arquivo já pronto (usado para a pasta .zip com vários dias)
+  function baixarBlob(blob, nome) {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = nome;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+  }
+
   function aguardar(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
   function diasComRegistros() {
@@ -1441,7 +1563,6 @@
     const fundo = document.createElement("div");
     fundo.className = "modal-fundo";
 
-    let tipo = "unico";
     let selecionados = new Set();
 
     function renderModal() {
@@ -1463,7 +1584,7 @@
         fundo.onclick = (e) => { if (e.target === fundo) fundo.remove(); };
         fundo.querySelector("#mConfirmar").onclick = () => {
           fundo.remove();
-          dispararExportacao(modo, null, null);
+          dispararExportacao(modo, null);
         };
         return;
       }
@@ -1495,23 +1616,9 @@
           </div>
           ${listaHtml}
 
-          <label>Como quer o arquivo?</label>
-          <div class="tipo-grade" id="tipoGrade">
-            <button type="button" data-tipo="unico" class="${tipo === "unico" ? "on" : ""}">
-              <b>Um arquivo só</b>
-              <small>Todos os dias selecionados em abas de um único xlsx</small>
-            </button>
-            <button type="button" data-tipo="separado" class="${tipo === "separado" ? "on" : ""}">
-              <b>Um arquivo por dia</b>
-              <small>Um xlsx separado para cada dia selecionado</small>
-            </button>
-          </div>
-
           <div class="info">
             <b>Selecionados:</b> ${selecionados.size ? selecionados.size + " dia" + (selecionados.size === 1 ? "" : "s") : "nenhum dia"}
-            ${tipo === "separado" && selecionados.size
-              ? `<br><b>Atenção:</b> o navegador vai baixar ${selecionados.size} arquivo${selecionados.size === 1 ? "" : "s"} na sua pasta de Downloads padrão.`
-              : ""}
+            ${selecionados.size > 1 ? "<br>Os dias serão baixados em uma pasta (arquivo .zip), com uma planilha para cada dia." : ""}
           </div>
 
           <div class="acoes">
@@ -1527,9 +1634,6 @@
           renderModal();
         };
       });
-      fundo.querySelectorAll("[data-tipo]").forEach((b) => {
-        b.onclick = () => { tipo = b.dataset.tipo; renderModal(); };
-      });
       const selTodos = fundo.querySelector("#selTodos");
       if (selTodos) selTodos.onclick = () => {
         selecionados = new Set(dias.map((x) => x.dia));
@@ -1544,7 +1648,7 @@
         if (selecionados.size === 0) return;
         const diasSel = Array.from(selecionados);
         fundo.remove();
-        dispararExportacao(modo, diasSel, tipo);
+        dispararExportacao(modo, diasSel);
       };
     }
 
@@ -1552,7 +1656,7 @@
     document.body.appendChild(fundo);
   }
 
-  async function dispararExportacao(modo, diasSelecionados, tipo) {
+  async function dispararExportacao(modo, diasSelecionados) {
     if (exportando) return;
     exportando = true;
     $("#exportar").disabled = true;
@@ -1569,22 +1673,32 @@
         const dias = diasSelecionados.slice().sort();
         if (!dias.length) { toast("Nenhum dia selecionado."); exportando = false; $("#exportar").disabled = false; return; }
 
-        if (tipo === "unico") {
-          toast("Gerando planilha com " + dias.length + " aba" + (dias.length === 1 ? "" : "s") + "…");
-          const buffer = await gerarPlanilhaDiaria(dias);
-          const nome = dias.length === 1
-            ? "planilha-lavagem-" + brDataNome(dias[0]) + ".xlsx"
-            : "planilhas-lavagem-" + brDataNome(dias[0]) + "_a_" + brDataNome(dias[dias.length - 1]) + ".xlsx";
+        if (dias.length === 1) {
+          // Um dia só: baixa a planilha direto
+          toast("Gerando planilha…");
+          const buffer = await gerarPlanilhaDeUmDia(dias[0]);
+          const nome = "planilha-lavagem-" + brDataNome(dias[0]) + ".xlsx";
           baixarArquivo(buffer, nome);
           toast("Planilha pronta: " + nome);
         } else {
-          toast("Baixando " + dias.length + " arquivo" + (dias.length === 1 ? "" : "s") + "…");
-          for (let i = 0; i < dias.length; i++) {
-            const buffer = await gerarPlanilhaDeUmDia(dias[i]);
-            baixarArquivo(buffer, "planilha-lavagem-" + brDataNome(dias[i]) + ".xlsx");
-            await aguardar(350);
+          // Vários dias: uma pasta (.zip) com uma planilha para cada dia
+          if (typeof JSZip === "undefined") {
+            toast("A biblioteca da pasta não carregou. Verifique a internet e recarregue.");
+            exportando = false;
+            $("#exportar").disabled = false;
+            return;
           }
-          toast(dias.length + " arquivo" + (dias.length === 1 ? "" : "s") + " baixado" + (dias.length === 1 ? "" : "s"));
+          toast("Gerando " + dias.length + " planilhas…");
+          const nomePasta = "planilhas-lavagem-" + brDataNome(dias[0]) + "_a_" + brDataNome(dias[dias.length - 1]);
+          const zip = new JSZip();
+          const pasta = zip.folder(nomePasta);
+          for (const dia of dias) {
+            const buffer = await gerarPlanilhaDeUmDia(dia);
+            pasta.file("planilha-lavagem-" + brDataNome(dia) + ".xlsx", buffer);
+          }
+          const blobZip = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+          baixarBlob(blobZip, nomePasta + ".zip");
+          toast("Pasta pronta: " + nomePasta + ".zip");
         }
       }
     } catch (e) {
@@ -1631,31 +1745,70 @@
     const tiposGeral = {};
     chavesTipos.forEach((k) => { tiposGeral[k] = nomes.reduce((s, n) => s + A.pessoas[n].tipos[k], 0); });
 
-    const refMeta = periodo === "hoje" ? A.totalCarros : (diasComLavagem ? A.totalCarros / diasComLavagem : 0);
-    const pctMeta = Math.min(100, Math.round((refMeta / META_DIARIA) * 100));
-    const metaHtml = `
-      <div class="meta ${pctMeta >= 100 ? "ok" : ""}">
-        <div class="linha"><span>Meta diária: ${META_DIARIA} carros</span><b>${pctMeta}%</b></div>
-        <div class="trilho"><i style="width:${pctMeta}%"></i></div>
-      </div>`;
+    const mediaTxt = media(A.totalCarros, diasComLavagem);
 
+    const melhor = ordenarDias(mapaGeral)[0];
+    const melhorValor = melhor ? melhor[1] : 0;
+    const melhorData = melhor ? (() => { const pd = partesDia(melhor[0]); return pd.semana + ", " + pd.data; })() : "";
     const hero = `
       <section class="hero">
         <div>
           <div class="rotulo">Carros lavados · ${PERIODOS[periodo].toLowerCase()}</div>
           <div class="grande" id="numHero" data-valor="${A.totalCarros}">${A.totalCarros}</div>
-          <div class="sub">em ${diasComLavagem} ${diasComLavagem === 1 ? "dia" : "dias"} com lavagem</div>
-          ${metaHtml}
+          <div class="hero-pills">
+            <div class="pill"><small>Dias registrados</small><b>${diasComLavagem}</b></div>
+          </div>
         </div>
         <div class="stats">
-          <div><span>Média por dia</span><b>${media(A.totalCarros, diasComLavagem)}</b></div>
-          <div><span>Melhor dia</span><b>${melhorDia(mapaGeral)}</b></div>
-          <div><span>Idas ao showroom</span><b>${A.totalIdas}</b></div>
-          <div><span>Para polimento</span><b>${A.totalPolimento}</b></div>
-          <div><span>Fora da listagem</span><b>${A.totalFora}</b></div>
-          <div><span>Substituídos</span><b>${A.totalSubs}</b></div>
+          <div class="grupo">
+            <div class="grupo-tit">Desempenho</div>
+            <div class="st"><div class="st-rot"><span>Média por dia</span></div><div class="st-val">${mediaTxt}</div></div>
+            <div class="st">
+              <div class="st-rot"><span>Melhor dia</span><small>${melhorData}</small></div>
+              <div class="st-val">${melhorValor}<small>${carrosTxt(melhorValor)}</small></div>
+            </div>
+          </div>
+          <div class="grupo">
+            <div class="grupo-tit">Ocorrências</div>
+            <div class="st"><div class="st-rot"><span>Idas ao showroom</span></div><div class="st-val">${A.totalIdas}</div></div>
+            <div class="st"><div class="st-rot"><span>Para polimento</span></div><div class="st-val">${A.totalPolimento}</div></div>
+            <div class="st"><div class="st-rot"><span>Fora da listagem</span></div><div class="st-val">${A.totalFora}</div></div>
+            <div class="st"><div class="st-rot"><span>Substituídos</span></div><div class="st-val">${A.totalSubs}</div></div>
+          </div>
         </div>
         <div class="mixwrap">${barraMix(tiposGeral, false)}${legendaMix(tiposGeral)}</div>
+      </section>`;
+
+    const faltasPessoas = nomes
+      .filter((n) => A.pessoas[n].faltas > 0)
+      .sort((x, y) => A.pessoas[y].faltas - A.pessoas[x].faltas)
+      .map((n) => {
+        const diasFalta = Object.keys(A.faltasPorDia).filter((d) => A.faltasPorDia[d][n]).sort();
+        const chips = diasFalta.map((d) => {
+          const pd = partesDia(d);
+          const q = A.faltasPorDia[d][n];
+          return `<span class="falta-dia"><b>${pd.data.slice(0, 5)}</b>${pd.semana.slice(0, 3).toLowerCase()}${q > 1 ? " ×" + q : ""}</span>`;
+        }).join("");
+        const qtd = A.pessoas[n].faltas;
+        return `
+          <div class="falta-pessoa">
+            <div class="falta-nome">${n}<small>${qtd} ${qtd === 1 ? "falta" : "faltas"}</small></div>
+            <div class="falta-dias">${chips}</div>
+          </div>`;
+      }).join("");
+    const faltasHtml = A.totalFaltas > 0
+      ? `
+      <section class="faltas-alerta">
+        <div class="faltas-topo">
+          <h3>Faltas no período</h3>
+          <span class="faltas-total">${A.totalFaltas} ${A.totalFaltas === 1 ? "falta" : "faltas"}</span>
+        </div>
+        <div class="faltas-lista">${faltasPessoas}</div>
+      </section>`
+      : `
+      <section class="faltas-alerta zero">
+        <h3>Faltas no período</h3>
+        <div class="nomes">Ninguém faltou</div>
       </section>`;
 
     const ordem = nomes.slice().sort((a, b) => A.pessoas[b].total - A.pessoas[a].total);
@@ -1678,6 +1831,7 @@
             <div><dt>Para polimento</dt><dd>${p.polimento}</dd></div>
             <div><dt>Fora da listagem</dt><dd>${p.foraListagem}</dd></div>
             <div><dt>Substituídos</dt><dd>${p.substituido}</dd></div>
+            <div><dt>Faltas</dt><dd>${p.faltas}</dd></div>
           </dl>
         </article>`;
     }).join("");
@@ -1724,26 +1878,39 @@
     }).join("");
 
     const maxGeral = Math.max(...Object.values(mapaGeral), 1);
-    const topGeral = ordenarDias(mapaGeral).slice(0, 5).map(([dia, n], i) => `
-      <div class="rk" style="--cor:var(--accent)">
-        <div class="fill" style="width:${(n / maxGeral) * 100}%"></div>
-        <span class="pos">${i + 1}</span>
-        <span class="data">${fmtData(dia)}</span>
-        <span class="espaco">${nomes.filter((x) => A.diasGeral[dia].porPessoa[x]).map((x) => chip(x, x + " " + A.diasGeral[dia].porPessoa[x])).join("")}</span>
-        <span class="n">${n}</span>
-      </div>`).join("");
+    const topGeral = ordenarDias(mapaGeral).slice(0, 5).map(([dia, n], i) => {
+      const { semana, data } = partesDia(dia);
+      const pessoasDia = nomes
+        .filter((x) => A.diasGeral[dia].porPessoa[x])
+        .map((x) => `<span style="--cor:${EQUIPE[x]}"><i></i>${x} <b>${A.diasGeral[dia].porPessoa[x]}</b></span>`)
+        .join("");
+      return `
+        <div class="md-item${i === 0 ? " primeiro" : ""}">
+          <span class="md-pos">${i + 1}</span>
+          <div class="md-info">
+            <div class="md-data"><b>${semana}</b><small>${data}</small></div>
+            <div class="md-pessoas">${pessoasDia}</div>
+            <div class="md-barra"><i style="width:${(n / maxGeral) * 100}%"></i></div>
+          </div>
+          <div class="md-n"><b>${n}</b><small>${carrosTxt(n)}</small></div>
+        </div>`;
+    }).join("");
 
     const topPessoas = nomes.map((n) => {
       const top = ordenarDias(A.pessoas[n].dias).slice(0, 3);
-      const maximo = top.length ? top[0][1] : 1;
+      const linhas = top.map(([dia, c], i) => {
+        const { semana, data } = partesDia(dia);
+        return `
+          <div class="md-linha${i === 0 ? " primeiro" : ""}">
+            <span class="md-pos">${i + 1}</span>
+            <div class="md-data"><b>${semana}</b><small>${data}</small></div>
+            <div class="md-n"><b>${c}</b><small>${carrosTxt(c)}</small></div>
+          </div>`;
+      }).join("");
       return `
         <div class="painel">
           <h3>${avatar(n)} ${n}</h3>
-          ${top.length ? top.map(([dia, c], i) => `
-            <div class="rk" style="--cor:${EQUIPE[n]}">
-              <div class="fill" style="width:${(c / maximo) * 100}%"></div>
-              <span class="pos">${i + 1}</span><span class="data">${fmtData(dia)}</span><span class="n" style="margin-left:auto">${c}</span>
-            </div>`).join("") : `<div class="nota">Sem registros</div>`}
+          ${linhas || `<div class="nota">Sem registros</div>`}
         </div>`;
     }).join("");
 
@@ -1751,14 +1918,27 @@
     const listaIda = diasIda.length
       ? diasIda.map((dia) => {
           const doDia = A.idasPorDia[dia];
-          const totalDia = nomes.reduce((s, n) => s + (doDia[n] ? doDia[n].length : 0), 0);
-          const quem = nomes.filter((n) => doDia[n]).map((n) =>
-            chip(n, n + " · " + doDia[n].slice().sort((a, b) => tsEmMs(a) - tsEmMs(b)).map(hora).join(", "))).join("");
-          return `<div class="ida-linha"><span class="data">${fmtData(dia)}</span><span class="chips">${quem}</span><span class="n">${totalDia}</span></div>`;
+          const itens = [];
+          nomes.forEach((n) => (doDia[n] || []).forEach((x) => itens.push({ nome: n, ts: x.ts, detalhe: x.detalhe })));
+          itens.sort((a, b) => tsEmMs(a.ts) - tsEmMs(b.ts));
+          const linhas = itens.map((x) => `
+            <div class="sf-linha">
+              <span class="chip" style="--cor:${EQUIPE[x.nome]}">${x.nome}</span>
+              <span class="sep">·</span><span class="sf-hora">${hora(x.ts)}</span>
+              <span class="sep">·</span><span class="sf-det">${escapar(x.detalhe || "Apenas check-in")}</span>
+            </div>`).join("");
+          return `
+            <details class="sanfona"${diasIda.length === 1 ? " open" : ""}>
+              <summary>
+                <span>${fmtDiaSanfona(dia)}</span>
+                <span class="sf-qtd">${itens.length} ${itens.length === 1 ? "ida" : "idas"}</span>
+              </summary>
+              <div class="sf-lista">${linhas}</div>
+            </details>`;
         }).join("")
       : `<div class="nota">Nenhuma ida ao showroom neste período.</div>`;
 
-    alvo.innerHTML = aviso + hero + `
+    alvo.innerHTML = aviso + hero + faltasHtml + `
       <h2>Equipe</h2>
       <p class="nota">Ranking por total de carros no período.</p>
       <div class="equipe">${fichas}</div>
@@ -1786,8 +1966,8 @@
       <div class="tres">${topPessoas}</div>
 
       <h2>Idas ao showroom</h2>
-      <p class="nota">Quem foi, em que dia e a que horas.</p>
-      <div class="painel">${listaIda}</div>
+      <p class="nota">Toque no dia para ver quem foi, a que horas e o que fez.</p>
+      <div>${listaIda}</div>
     `;
 
     criarGraficos(A);
