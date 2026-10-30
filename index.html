@@ -394,21 +394,62 @@
 
   /* ===== Pesquisa de veículo (topo) ===== */
   #pesquisa { margin-top: 20px; }
-  .pq-card { background: var(--panel); border-radius: 18px; padding: 20px 22px 22px; box-shadow: var(--sombra); }
+
+  /* Cor da pesquisa (--pq):
+     padrão Placa (bolinha desligada)  = vermelho
+     Chassi (bolinha ligada)           = verde
+     ao achar um veículo, a cor segue o tipo dele:
+     carro novo = verde, oficina = vermelho, test drive = laranja, showroom = azul, outros = cinza */
+  .pq-card {
+    --pq: #b3382c;
+    background: var(--panel); border-radius: 18px; padding: 20px 22px 22px;
+    box-shadow: var(--sombra), inset 0 5px 0 var(--pq);
+    transition: box-shadow .3s ease;
+  }
+  .pq-card[data-modo="chassi"] { --pq: #1b7f4b; }
+  .pq-card[data-cor="novo"]   { --pq: #1b7f4b; }
+  .pq-card[data-cor="of"]     { --pq: #b3382c; }
+  .pq-card[data-cor="teste"]  { --pq: #b86e00; }
+  .pq-card[data-cor="show"]   { --pq: #1f5fbf; }
+  .pq-card[data-cor="outros"] { --pq: #6b7280; }
+
   .pq-topo { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 14px; margin-bottom: 16px; }
   .pq-titulo { font: 700 26px var(--font-d); letter-spacing: .01em; }
   .pq-sub { color: var(--mut); font-size: 14px; }
   .pq-linha { display: grid; grid-template-columns: auto 1fr; gap: 16px 36px; align-items: end; }
-  .pq-rot { display: block; font-size: 13px; font-weight: 600; color: var(--mut); margin-bottom: 8px; }
+  .pq-rot { display: block; font-size: 13px; font-weight: 600; color: var(--pq); margin-bottom: 8px; transition: color .3s ease; }
+
+  /* Interruptor Placa / Chassi */
+  .pq-modo { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 14px; user-select: none; }
+  .pq-opt {
+    font: 700 18px var(--font-d); letter-spacing: .02em; color: var(--mut);
+    cursor: pointer; transition: color .25s ease; display: flex; flex-direction: column; line-height: 1.1;
+  }
+  .pq-opt small { font: 500 12px var(--font-b); letter-spacing: 0; }
+  .pq-opt.on { color: var(--pq); }
+  .pq-switch {
+    position: relative; width: 62px; height: 34px; border-radius: 99px; border: 0; padding: 0;
+    background: var(--pq); cursor: pointer; flex: none;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.2);
+    transition: background .3s ease;
+  }
+  .pq-switch i {
+    position: absolute; top: 4px; left: 4px; width: 26px; height: 26px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3);
+    transition: transform .3s cubic-bezier(.3,1.4,.5,1);
+  }
+  .pq-switch[aria-checked="true"] i { transform: translateX(28px); }
+
   .pq-chassi { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .pq-chassi input {
     width: 54px; height: 68px; padding: 0; text-align: center; text-transform: uppercase;
-    font: 700 30px var(--font-b); color: var(--ink); caret-color: var(--accent);
+    font: 700 30px var(--font-b); color: var(--ink); caret-color: var(--pq);
     background: var(--bg); border: 2px solid var(--line); border-radius: 12px;
-    transition: border-color .15s, box-shadow .15s;
+    transition: border-color .25s ease, box-shadow .25s ease, color .25s ease;
   }
-  .pq-chassi input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
-  .pq-chassi input.cheio { border-color: var(--accent); }
+  .pq-chassi input[hidden] { display: none; }
+  .pq-chassi input:focus { outline: none; border-color: var(--pq); box-shadow: 0 0 0 4px color-mix(in srgb, var(--pq) 20%, transparent); }
+  .pq-chassi input.cheio { border-color: var(--pq); color: var(--pq); }
   .pq-limpar { border: 0; background: transparent; color: var(--mut); font: 600 14px var(--font-b); padding: 10px 12px; border-radius: 10px; cursor: pointer; }
   .pq-limpar:hover { background: var(--soft); color: var(--ink); }
   .pq-limpar[hidden] { display: none; }
@@ -419,6 +460,7 @@
   .pq-stat { background: var(--soft); border-radius: 12px; padding: 10px 16px; }
   .pq-stat small { display: block; font-size: 12px; font-weight: 600; color: var(--mut); }
   .pq-stat b { display: block; font: 700 24px var(--font-d); }
+  .pq-stat:last-child b { color: var(--pq); }
   .pq-lista { max-height: 520px; overflow-y: auto; border: 1px solid var(--line); border-radius: 14px; }
   .pq-item { display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center; padding: 14px 16px; }
   .pq-item + .pq-item { border-top: 1px solid var(--line); }
@@ -444,6 +486,9 @@
     .pq-chassi { gap: 6px; }
     .pq-item { grid-template-columns: 56px 1fr; gap: 12px; }
     .pq-lav { grid-column: 1 / -1; flex-direction: row-reverse; justify-content: flex-end; text-align: left; padding-top: 10px; border-top: 1px solid var(--line); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pq-card, .pq-switch, .pq-switch i, .pq-opt, .pq-rot, .pq-chassi input { transition: none; }
   }
 
   /* =========================================================
@@ -622,14 +667,19 @@
 
 <main>
   <section id="pesquisa" aria-label="Pesquisar veículo">
-    <div class="pq-card">
+    <div class="pq-card" id="pqCard" data-modo="placa">
       <div class="pq-topo">
         <div class="pq-titulo">Pesquisar veículo</div>
-        <div class="pq-sub">Histórico de lavagens pelo chassi (novo) ou placa (oficina)</div>
+        <div class="pq-sub">Histórico de lavagens pela placa (oficina) ou pelo chassi (carro novo)</div>
       </div>
       <div class="pq-linha">
         <div>
-          <span class="pq-rot" id="pqRot">Chassi / Placa</span>
+          <div class="pq-modo" id="pqModo">
+            <span class="pq-opt" data-m="placa">Placa<small>oficina · 7 caracteres</small></span>
+            <button type="button" class="pq-switch" id="pqSwitch" role="switch" aria-checked="false" aria-label="Alternar entre placa e chassi"><i></i></button>
+            <span class="pq-opt" data-m="chassi">Chassi<small>carro novo · 5 caracteres</small></span>
+          </div>
+          <span class="pq-rot" id="pqRot">Placa (7 caracteres)</span>
           <div class="pq-chassi" id="pqChassi" role="group" aria-labelledby="pqRot">
             <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 1">
             <input inputmode="text" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Caractere 2">
@@ -1338,7 +1388,6 @@
       }
       const larguraColObs = Math.max(18, larguraObs + 3);
 
-      // Alterado para CHASSI/PLACA
       const colunas = temMarca
         ? ["", "VEICULO", "CHASSI/PLACA", "COR", "SETOR", "LAVADOR", "HORÁRIO", "OBSERVAÇÃO"]
         : ["", "VEICULO", "CHASSI/PLACA", "COR", "SETOR", "LAVADOR", "HORÁRIO"];
@@ -1992,11 +2041,16 @@
   // ============ PESQUISA DE VEÍCULO ============
   (function () {
     const caixas = [...document.querySelectorAll("#pqChassi input")];
+    const card = $("#pqCard");
+
+    // Modo da pesquisa: "placa" (padrão, 7 caracteres, vermelho) ou "chassi" (5 caracteres, verde)
+    let modo = "placa";
+    const tam = () => (modo === "placa" ? 7 : 5);
 
     const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     const limpo = (t) => t.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-    const termo = () => caixas.map((c) => c.value).join("");
+    const termo = () => caixas.slice(0, tam()).map((c) => c.value).join("");
     const dataDe = (dia) => { const [a, m, d] = dia.split("-").map(Number); return new Date(a, m - 1, d); };
 
     function mostrar(htmlTexto) {
@@ -2005,19 +2059,27 @@
       r.innerHTML = htmlTexto;
     }
 
+    // Define a cor do cartão: sem resultado usa a cor do modo (vermelho/verde);
+    // com resultado usa a cor do tipo do veículo encontrado.
+    function definirCorPorTipo(tipo) {
+      if (!tipo) { card.removeAttribute("data-cor"); return; }
+      card.dataset.cor = COR_TIPO[tipo] ? tipo : "outros";
+    }
+
     function pesquisaRender() {
       const t = termo();
       $("#pqLimpar").hidden = t.length === 0;
       caixas.forEach((c) => c.classList.toggle("cheio", !!c.value));
       const res = $("#pqRes");
+      definirCorPorTipo(null);
 
       if (t.length === 0) { res.hidden = true; res.innerHTML = ""; return; }
-      
+
       if (t.length < 4) {
         mostrar(`<div class="pq-vazio">Digite pelo menos 4 caracteres do chassi ou placa.</div>`);
         return;
       }
-      
+
       if (!bruto) {
         mostrar(carregando
           ? `<div class="pq-vazio">Carregando dados…</div>`
@@ -2035,9 +2097,13 @@
       lista.sort((a, b) => (tsEmMs(b.ts) || 0) - (tsEmMs(a.ts) || 0));
 
       if (!lista.length) {
-        mostrar(`<div class="pq-vazio"><b>Nenhum registro encontrado</b>Não há lavagens para o chassi/placa ${esc(t)}. Confira os caracteres.</div>`);
+        mostrar(`<div class="pq-vazio"><b>Nenhum registro encontrado</b>Não há lavagens para ${modo === "placa" ? "a placa" : "o chassi"} ${esc(t)}. Confira os caracteres.</div>`);
         return;
       }
+
+      // A cor segue o tipo da lavagem mais recente encontrada:
+      // showroom = azul, test drive = laranja, outros = cinza, carro novo = verde, oficina = vermelho
+      definirCorPorTipo(lista[0].tipo);
 
       const itens = lista.map((r) => {
         const d = dataDe(r.dia);
@@ -2050,7 +2116,7 @@
         const corTipo = COR_TIPO[r.tipo];
         tags.push(corTipo
           ? `<span class="pq-tag" style="background:${corTipo};border-color:transparent;color:#fff">${esc(TIPOS[r.tipo])}</span>`
-          : `<span class="pq-tag">${esc(r.tipo || "Outros")}</span>`);
+          : `<span class="pq-tag" style="background:${COR_TIPO.outros};border-color:transparent;color:#fff">${esc(r.tipo || "Outros")}</span>`);
         const cor = EQUIPE[r.nome] || "#64748b";
         return `
           <article class="pq-item">
@@ -2071,18 +2137,40 @@
         <div class="pq-stats">
           <div class="pq-stat"><small>Lavagens</small><b>${lista.length}</b></div>
           <div class="pq-stat"><small>Última lavagem</small><b>${brData(lista[0].dia)}</b></div>
-          <div class="pq-stat"><small>Chassi/Placa</small><b>${esc(t)}</b></div>
+          <div class="pq-stat"><small>${modo === "placa" ? "Placa" : "Chassi"}</small><b>${esc(t)}</b></div>
         </div>
         <div class="pq-lista">${itens}</div>`);
     }
     window.pesquisaRender = pesquisaRender;
 
+    // Aplica o modo atual: mostra 7 campos (placa) ou 5 (chassi), troca textos e cor
+    function aplicarModo() {
+      const n = tam();
+      card.dataset.modo = modo;
+      $("#pqSwitch").setAttribute("aria-checked", modo === "chassi" ? "true" : "false");
+      document.querySelectorAll("#pqModo .pq-opt").forEach((o) => o.classList.toggle("on", o.dataset.m === modo));
+      $("#pqRot").textContent = modo === "placa" ? "Placa (7 caracteres)" : "Chassi (5 caracteres)";
+      caixas.forEach((c, i) => {
+        c.hidden = i >= n;
+        if (i >= n) c.value = "";
+      });
+      pesquisaRender();
+    }
+
+    function alternar(novo) {
+      modo = novo || (modo === "placa" ? "chassi" : "placa");
+      aplicarModo();
+      const vazia = caixas.find((c, i) => i < tam() && !c.value);
+      (vazia || caixas[tam() - 1]).focus();
+    }
+
     function preencher(inicio, texto) {
       const l = limpo(texto);
       if (!l) return;
-      const dados = l.length > 7 && inicio === 0 ? l.slice(-7) : l;
-      for (let k = 0; k < dados.length && inicio + k < 7; k++) caixas[inicio + k].value = dados[k];
-      caixas[Math.min(inicio + dados.length, 6)].focus();
+      // Ao colar um texto maior que o campo (ex.: chassi de 17 caracteres), usa só os últimos caracteres
+      const dados = l.length > tam() && inicio === 0 ? l.slice(-tam()) : l;
+      for (let k = 0; k < dados.length && inicio + k < tam(); k++) caixas[inicio + k].value = dados[k];
+      caixas[Math.min(inicio + dados.length, tam() - 1)].focus();
       pesquisaRender();
     }
 
@@ -2095,7 +2183,7 @@
       c.addEventListener("keydown", (e) => {
         if (e.key === "Backspace" && !c.value && i > 0) { caixas[i - 1].value = ""; caixas[i - 1].focus(); pesquisaRender(); e.preventDefault(); }
         else if (e.key === "ArrowLeft" && i > 0) caixas[i - 1].focus();
-        else if (e.key === "ArrowRight" && i < 6) caixas[i + 1].focus();
+        else if (e.key === "ArrowRight" && i < tam() - 1) caixas[i + 1].focus();
       });
       c.addEventListener("paste", (e) => {
         e.preventDefault();
@@ -2105,6 +2193,10 @@
     });
 
     $("#pqLimpar").onclick = () => { caixas.forEach((c) => { c.value = ""; }); caixas[0].focus(); pesquisaRender(); };
+    $("#pqSwitch").onclick = () => alternar();
+    document.querySelectorAll("#pqModo .pq-opt").forEach((o) => { o.onclick = () => alternar(o.dataset.m); });
+
+    aplicarModo();
   })();
 
   // =========================================================
