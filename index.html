@@ -991,12 +991,23 @@
     if (window.pesquisaRender) pesquisaRender();
   }
 
+  // 7 dias e 30 dias nunca voltam antes do dia 1 do mês atual.
+  // Só o botão "Tudo" mostra todo o histórico, independente do mês.
   function inicioDoPeriodo() {
     const d = baseOperacional();
+    const primeiroDoMes = iso(new Date(d.getFullYear(), d.getMonth(), 1));
     if (periodo === "hoje") return iso(d);
-    if (periodo === "sete") { d.setDate(d.getDate() - 6); return iso(d); }
-    if (periodo === "trinta") { d.setDate(d.getDate() - 29); return iso(d); }
-    if (periodo === "mes") { d.setDate(1); return iso(d); }
+    if (periodo === "sete") {
+      d.setDate(d.getDate() - 6);
+      const inicio = iso(d);
+      return inicio < primeiroDoMes ? primeiroDoMes : inicio;
+    }
+    if (periodo === "trinta") {
+      d.setDate(d.getDate() - 29);
+      const inicio = iso(d);
+      return inicio < primeiroDoMes ? primeiroDoMes : inicio;
+    }
+    if (periodo === "mes") return primeiroDoMes;
     return "0000-00-00";
   }
   function intervaloTexto() {
