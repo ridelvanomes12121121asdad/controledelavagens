@@ -129,6 +129,8 @@
   }
   .modal h3 { font-size: 26px; margin-bottom: 4px; }
   .modal .sub { color: var(--mut); font-size: 14px; margin-bottom: 18px; }
+  .modal .seg { margin: 0 0 4px; }
+  .modal .seg button { flex: 1; text-transform: capitalize; }
   .modal label { display: block; font-weight: 600; font-size: 14px; margin: 18px 0 8px; color: var(--mut); }
   .modal .tipo-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .modal .tipo-grade button {
@@ -1624,6 +1626,18 @@
     fundo.className = "modal-fundo";
 
     let selecionados = new Set();
+    // Mês exibido na lista: "atual" (padrão) ou "passado"
+    let mesSel = "atual";
+
+    function prefixoDoMes(qual) {
+      const [a, m] = hojeOperacional().split("-").map(Number);
+      const d = new Date(a, m - 1 - (qual === "passado" ? 1 : 0), 1);
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    }
+    function nomeDoMes(qual) {
+      const [a, m] = prefixoDoMes(qual).split("-").map(Number);
+      return new Date(a, m - 1, 1).toLocaleDateString("pt-BR", { month: "long" });
+    }
 
     function renderModal() {
       if (!ehSimples) {
@@ -1649,7 +1663,8 @@
         return;
       }
 
-      const dias = diasComRegistros();
+      const prefixo = prefixoDoMes(mesSel);
+      const dias = diasComRegistros().filter((x) => x.dia.startsWith(prefixo));
 
       const listaHtml = dias.length
         ? `<div class="dias-lista" id="diasLista">
@@ -1659,12 +1674,17 @@
                 <small>${total} carro${total === 1 ? "" : "s"}</small>
               </button>`).join("")}
           </div>`
-        : `<div class="dias-vazio">Nenhum dia com registros de lavagem.</div>`;
+        : `<div class="dias-vazio">Nenhum dia com registros neste mês.</div>`;
 
       fundo.innerHTML = `
         <div class="modal">
           <h3>Exportar planilha</h3>
           <div class="sub">Modelo da folha de lavagem</div>
+
+          <div class="seg" id="mesAbas">
+            <button type="button" data-mes="atual" class="${mesSel === "atual" ? "on" : ""}">Este mês · ${nomeDoMes("atual")}</button>
+            <button type="button" data-mes="passado" class="${mesSel === "passado" ? "on" : ""}">Mês passado · ${nomeDoMes("passado")}</button>
+          </div>
 
           <label>Dias com registros</label>
           <div class="dias-topo">
@@ -1691,6 +1711,14 @@
         b.onclick = () => {
           const d = b.dataset.dia;
           if (selecionados.has(d)) selecionados.delete(d); else selecionados.add(d);
+          renderModal();
+        };
+      });
+      fundo.querySelectorAll("[data-mes]").forEach((b) => {
+        b.onclick = () => {
+          if (mesSel === b.dataset.mes) return;
+          mesSel = b.dataset.mes;
+          selecionados = new Set(); // não mistura dias de meses diferentes
           renderModal();
         };
       });
