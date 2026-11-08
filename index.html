@@ -623,6 +623,41 @@
     .cal-btn-dia .cal-qtd-carros { font-size: 10px; padding: 1px 4px; }
     .cal-modal { padding: 18px 16px 22px; }
   }
+
+  /* ===== Histórico da planilha (ao lado do calendário de médias) ===== */
+  .plh-largo { width: min(100%, 1150px); }
+  .plh-nav { display: flex; align-items: center; gap: 12px; }
+  .plh-seta { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); cursor: pointer; font-size: 20px; line-height: 1; text-decoration: none; }
+  .plh-seta:hover { background: var(--line); }
+  .cal-btn-dia .cal-qtd-carros.plh-ok { background: #16a34a; color: #fff; }
+  .cal-btn-dia .cal-qtd-carros.plh-pend { background: #d97706; color: #fff; }
+  .plh-legenda { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 13px; color: var(--mut); }
+  .plh-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+  .plh-resumo { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .plh-chip { flex: 1; min-width: 120px; background: var(--soft); border-radius: 12px; padding: 12px 14px; border-left: 6px solid var(--c); }
+  .plh-chip b { display: block; font: 700 30px/1 var(--font-d); color: var(--c); }
+  .plh-chip span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--mut); }
+  .plh-barra { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--soft); gap: 2px; margin-bottom: 16px; }
+  .plh-barra i { display: block; height: 100%; }
+
+  /* ===== Planilha de lavagem (somente leitura, espelho do controle) ===== */
+  .pl-card { background: var(--panel); border-radius: 14px; box-shadow: var(--sombra); overflow: hidden; }
+  .pl-wrap { overflow-x: auto; }
+  table.pl-tab { width: 100%; border-collapse: collapse; text-align: center; min-width: 820px; }
+  table.pl-tab th { background: #3b82f6; color: #fff; padding: 10px 8px; font-size: 13px; border: 1px solid #1e40af; text-transform: uppercase; }
+  table.pl-tab td { background: #ffffff; padding: 10px 8px; border: 1px solid #94a3b8; font-size: 14px; font-weight: 700; color: #12232e; text-transform: uppercase; white-space: nowrap; }
+  table.pl-tab td.d { text-align: left; padding-left: 10px; }
+  table.pl-tab td.ch { color: #16a34a; }
+  table.pl-tab td.red { background: #e11d48; color: #000; }
+  table.pl-tab tr.ok td { background: #dcfce7; color: #166534; }
+  table.pl-tab tr.ok td.red { background: #fca5a5; }
+  table.pl-tab tr.ok td.ch { color: #166534; }
+  table.pl-tab tr.sub td { background: #fef3c7; color: #92400e; }
+  table.pl-tab tr.sub td.red { background: #fcd34d; }
+  table.pl-tab tr.sub td.ch { color: #92400e; }
+  .pl-selo { display: inline-block; background: #94a3b8; color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 5px; }
+  .pl-selo.ok { background: #16a34a; }
+  .pl-selo.sub { background: #d97706; }
 </style>
 </head>
 <body>
@@ -650,6 +685,9 @@
       </div>
       <button class="btn-icone" id="btnCalendario" title="Abrir calendário" aria-label="Abrir calendário">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
+      <button class="btn-icone" id="btnPlanilhaHist" title="Planilha por dia" aria-label="Abrir histórico da planilha por dia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
       </button>
       <button class="btn-icone" id="atualizar" title="Atualizar dados" aria-label="Atualizar dados">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -713,6 +751,19 @@
   </div>
 </div>
 
+<div class="cal-modal-fundo" id="plhModal" hidden>
+  <div class="cal-modal plh-largo" role="dialog" aria-modal="true" aria-label="Planilha por dia">
+    <button class="cal-modal-fechar" id="plhFechar" aria-label="Fechar planilha por dia">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="cal-topo">
+      <div class="cal-titulo">Planilha por dia</div>
+      <div class="cal-sub">Clique em um dia para ver como estava a planilha naquele dia: o que foi concluído e o que ficou pendente</div>
+    </div>
+    <div id="plhConteudo"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -734,6 +785,20 @@
   const HORA_VIRADA = 24;
 
   let periodo = "hoje";
+  let planilha = [];
+  let planilhaDia = "";
+  let planilhasPorDia = {};   // histórico: { "AAAA-MM-DD": [linhas] }
+
+  // A planilha só vale no dia em que foi colocada no controle (dia de calendário em Fortaleza).
+  // Passou o dia, ela some e só volta quando uma nova for colocada.
+  function diaCalendario() {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: FUSO, year: "numeric", month: "2-digit", day: "2-digit" })
+      .formatToParts(new Date()).map((x) => [x.type, x.value]));
+    return p.year + "-" + p.month + "-" + p.day;
+  }
+  function planilhaDeHoje(pl) {
+    return (pl && pl.dia === diaCalendario() && Array.isArray(pl.dados)) ? pl.dados : [];
+  }
   let bruto = null;
   let erro = "";
   let carregando = true;
@@ -973,11 +1038,16 @@
     render();
     if (window.pesquisaRender) pesquisaRender();
     try {
-      const [lavagens, showroom, faltas] = await Promise.all([
+      const [lavagens, showroom, faltas, pl, hist] = await Promise.all([
         buscar("lavagens"),
         buscar("showroom"),
-        buscar("faltas").catch(() => ({}))
+        buscar("faltas").catch(() => ({})),
+        buscar("planilha").catch(() => ({})),
+        buscar("planilhas").catch(() => ({}))
       ]);
+      planilha = planilhaDeHoje(pl);
+      planilhaDia = pl.dia || "";
+      montarHistoricoPlanilhas(pl, hist);
       bruto = {
         lavagens: reindexar(lavagens),
         showroom: reindexar(showroom),
@@ -1798,6 +1868,74 @@
     $("#exportar").disabled = false;
   }
 
+  // ============================================================
+  // PLANILHA DE LAVAGEM — vem do banco (/planilha), somente leitura.
+  // Aparece só no período "Hoje". O status marcado no controle vale;
+  // sem marcação, o chassi decide (5 últimos dígitos).
+  // ============================================================
+  function bate(a, b) {
+    a = String(a || "").replace(/\D/g, "");
+    b = String(b || "").replace(/\D/g, "");
+    const n = Math.min(5, a.length, b.length);
+    return n >= 4 && a.slice(-n) === b.slice(-n);
+  }
+
+  function statusDaLinha(l, placas) {
+    const manual = ["pendente", "lavado", "substituido"].includes(l.status) ? l.status : null;
+    return manual || (placas.some((p) => bate(l.chassi, p)) ? "lavado" : "pendente");
+  }
+
+  function linhaPlanilhaHtml(l, st) {
+    const v = l.fundoVermelho ? " red" : "";
+    const classe = st === "lavado" ? "ok" : st === "substituido" ? "sub" : "";
+    const selo = st === "lavado" ? '<span class="pl-selo ok">✔ LAVADO</span>'
+               : st === "substituido" ? '<span class="pl-selo sub">SUBSTITUÍDO</span>'
+               : '<span class="pl-selo">PENDENTE</span>';
+    return `
+        <tr class="${classe}">
+          <td class="d${v}">${escapar(String(l.data || "").replace(/[\r\n]+/g, " "))}</td>
+          <td>${escapar(l.horario || "")}</td>
+          <td class="${v.trim()}">${escapar(l.cliente || "")}</td>
+          <td>${escapar(l.origem || "")}</td>
+          <td>${escapar(l.modelo || "")}</td>
+          <td>${escapar(l.cor || "")}</td>
+          <td class="ch">${escapar(l.chassi || "")}</td>
+          <td>${selo}</td>
+        </tr>`;
+  }
+
+  const CABECALHO_PLANILHA = `
+            <tr>
+              <th>DATA</th><th>HORÁRIO</th><th>CLIENTE</th><th>ORIGEM</th><th>MODELO</th><th>COR</th><th>CHASSI</th><th>STATUS</th>
+            </tr>`;
+
+  function planilhaLinhasHtml() {
+    const placas = [];
+    if (bruto) {
+      for (const regs of Object.values(bruto.lavagens)) {
+        for (const r of Object.values(regs || {})) if (r && r.placa) placas.push(r.placa);
+      }
+    }
+    return planilha.map((l) => linhaPlanilhaHtml(l, statusDaLinha(l, placas))).join("");
+  }
+
+  function planilhaHtml() {
+    if (periodo !== "hoje" || !planilha.length || planilhaDia !== diaCalendario()) return "";
+    return `
+      <h2>Planilha de lavagem</h2>
+      <p class="nota">Acompanha o que foi marcado no controle: pendente, lavado ou substituído.</p>
+      <div class="pl-card"><div class="pl-wrap">
+        <table class="pl-tab">
+          <thead>
+            <tr>
+              <th>DATA</th><th>HORÁRIO</th><th>CLIENTE</th><th>ORIGEM</th><th>MODELO</th><th>COR</th><th>CHASSI</th><th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="plCorpo">${planilhaLinhasHtml()}</tbody>
+        </table>
+      </div></div>`;
+  }
+
   function render() {
     destruirGraficos();
     document.querySelectorAll("#barra [data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === periodo));
@@ -1822,7 +1960,7 @@
     const aviso = erro ? `<div class="msg err">${erro} Mostrando os últimos dados carregados.</div>` : "";
 
     if (A.totalCarros === 0 && A.totalIdas === 0) {
-      alvo.innerHTML = aviso + `<div class="msg">Nenhum registro em "${PERIODOS[periodo].toLowerCase()}".</div>`;
+      alvo.innerHTML = aviso + `<div class="msg">Nenhum registro em "${PERIODOS[periodo].toLowerCase()}".</div>` + planilhaHtml();
       if (!calModalAberto()) calRender();
       return;
     }
@@ -2030,6 +2168,8 @@
       <h2>Equipe</h2>
       <p class="nota">Ranking por total de carros no período.</p>
       <div class="equipe">${fichas}</div>
+
+      ${planilhaHtml()}
 
       <h2>Evolução por dia</h2>
       <p class="nota">Toque no nome na legenda para ver cada colaborador.</p>
@@ -2435,7 +2575,184 @@
     if (e.key === "Escape" && calModalAberto()) calFecharModal();
   });
 
+  // =========================================================
+  // PLANILHA POR DIA (histórico, ao lado do calendário de médias)
+  // Cada dia guarda a planilha colocada naquele dia. O status mostrado é o daquele dia:
+  // marcação manual do controle + chassis lavados até aquele dia.
+  // =========================================================
+  let plhTela = "calendario";
+  let plhDiaSel = null;
+  let plhMesRef = null;
+
+  function montarHistoricoPlanilhas(pl, hist) {
+    const mapa = {};
+    for (const [d, v] of Object.entries(hist || {})) {
+      if (v && Array.isArray(v.dados) && v.dados.length) mapa[d] = v.dados;
+    }
+    // a planilha "ao vivo" (/planilha) tem prioridade para o dia dela
+    if (pl && pl.dia && Array.isArray(pl.dados) && pl.dados.length) mapa[pl.dia] = pl.dados;
+    planilhasPorDia = mapa;
+  }
+
+  function plhModalAberto() {
+    const m = document.getElementById("plhModal");
+    return !!m && !m.hidden;
+  }
+  function plhAbrir() {
+    plhTela = "calendario";
+    plhDiaSel = null;
+    const b = baseOperacional();
+    plhMesRef = new Date(b.getFullYear(), b.getMonth(), 1);
+    document.getElementById("plhModal").hidden = false;
+    plhRender();
+  }
+  function plhFechar() { document.getElementById("plhModal").hidden = true; }
+
+  function plhPlacasAte(dia) {
+    const placas = [];
+    if (!bruto) return placas;
+    for (const [d, regs] of Object.entries(bruto.lavagens)) {
+      if (d > dia) continue;
+      for (const r of Object.values(regs || {})) if (r && r.placa) placas.push(r.placa);
+    }
+    return placas;
+  }
+
+  function plhContar(dados, placas) {
+    let l = 0, sub = 0, p = 0;
+    dados.forEach((x) => {
+      const st = statusDaLinha(x, placas);
+      if (st === "lavado") l++; else if (st === "substituido") sub++; else p++;
+    });
+    return { l, sub, p, total: dados.length };
+  }
+
+  function plhRender() {
+    const alvo = document.getElementById("plhConteudo");
+    if (!alvo) return;
+    if (!bruto) {
+      alvo.innerHTML = `<div class="cal-msg">${carregando ? "Carregando dados…" : "Os dados do painel ainda não foram carregados. Use o botão de atualizar no topo."}</div>`;
+      return;
+    }
+
+    // ----- Detalhe de um dia -----
+    if (plhTela === "detalhe" && plhDiaSel) {
+      const dados = planilhasPorDia[plhDiaSel] || [];
+      if (!dados.length) {
+        alvo.innerHTML = `<div class="cal-msg">Nenhuma planilha guardada neste dia.</div>`;
+        return;
+      }
+      const placas = plhPlacasAte(plhDiaSel);
+      const c = plhContar(dados, placas);
+      const seg = (n, cor) => n ? `<i style="width:${(n / c.total) * 100}%;background:${cor}"></i>` : "";
+      const linhas = dados.map((x) => linhaPlanilhaHtml(x, statusDaLinha(x, placas))).join("");
+      alvo.innerHTML = `
+        <div class="cal-tela">
+          <div class="cal-header">
+            <h3>${fmtDataLonga(plhDiaSel)}</h3>
+            <button id="plhVoltar">Voltar ao calendário</button>
+          </div>
+          <div class="plh-resumo">
+            <div class="plh-chip" style="--c:#475569"><b>${c.total}</b><span>Carros na planilha</span></div>
+            <div class="plh-chip" style="--c:#16a34a"><b>${c.l}</b><span>Lavados</span></div>
+            <div class="plh-chip" style="--c:#d97706"><b>${c.sub}</b><span>Substituídos</span></div>
+            <div class="plh-chip" style="--c:#64748b"><b>${c.p}</b><span>Pendentes</span></div>
+          </div>
+          <div class="plh-barra">${seg(c.l, "#16a34a")}${seg(c.sub, "#d97706")}${seg(c.p, "#94a3b8")}</div>
+          <div class="pl-card"><div class="pl-wrap">
+            <table class="pl-tab">
+              <thead>${CABECALHO_PLANILHA}</thead>
+              <tbody>${linhas}</tbody>
+            </table>
+          </div></div>
+        </div>`;
+      document.getElementById("plhVoltar").onclick = () => { plhTela = "calendario"; plhDiaSel = null; plhRender(); };
+      return;
+    }
+
+    // ----- Calendário do mês -----
+    const ano = plhMesRef.getFullYear();
+    const mes = plhMesRef.getMonth();
+    const nomeMes = plhMesRef.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const primeiroDiaMes = new Date(ano, mes, 1);
+    const ultimoDiaMes = new Date(ano, mes + 1, 0);
+    const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    let celulas = "";
+    for (let i = 0; i < primeiroDiaMes.getDay(); i++) celulas += `<div></div>`;
+    for (let d = 1; d <= ultimoDiaMes.getDate(); d++) {
+      const dataIso = iso(new Date(ano, mes, d));
+      const dados = planilhasPorDia[dataIso];
+      if (dados && dados.length) {
+        const c = plhContar(dados, plhPlacasAte(dataIso));
+        const concluidos = c.l + c.sub;
+        celulas += `
+          <button class="cal-btn-dia cal-tem-dados" data-dia="${dataIso}">
+            ${d}
+            <span class="cal-qtd-carros ${c.p === 0 ? "plh-ok" : "plh-pend"}">${concluidos}/${c.total}</span>
+          </button>`;
+      } else {
+        celulas += `<div class="cal-btn-dia cal-vazio">${d}</div>`;
+      }
+    }
+
+    alvo.innerHTML = `
+      <div class="cal-tela">
+        <div class="cal-header">
+          <div class="plh-nav">
+            <button type="button" class="plh-seta" id="plhAnt" aria-label="Mês anterior">‹</button>
+            <h3>${nomeMes}</h3>
+            <button type="button" class="plh-seta" id="plhProx" aria-label="Próximo mês">›</button>
+          </div>
+        </div>
+        <div class="cal-grid">
+          ${diasDaSemana.map((ds) => `<div class="cal-dia-semana">${ds}</div>`).join("")}
+          ${celulas}
+        </div>
+        <div class="plh-legenda">
+          <span><i style="background:#16a34a"></i>Tudo resolvido no dia</span>
+          <span><i style="background:#d97706"></i>Ficou pendente (resolvidos/total)</span>
+        </div>
+      </div>`;
+
+    document.getElementById("plhAnt").onclick = () => { plhMesRef = new Date(ano, mes - 1, 1); plhRender(); };
+    document.getElementById("plhProx").onclick = () => { plhMesRef = new Date(ano, mes + 1, 1); plhRender(); };
+    alvo.querySelectorAll(".cal-btn-dia.cal-tem-dados").forEach((btn) => {
+      btn.onclick = () => { plhDiaSel = btn.dataset.dia; plhTela = "detalhe"; plhRender(); };
+    });
+  }
+
+  document.getElementById("btnPlanilhaHist").onclick = plhAbrir;
+  document.getElementById("plhFechar").onclick = plhFechar;
+  document.getElementById("plhModal").addEventListener("click", (e) => {
+    if (e.target.id === "plhModal") plhFechar();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && plhModalAberto()) plhFechar();
+  });
+
   carregar();
+
+  // Espelho: a cada 15 s relê planilha e lavagens e atualiza só a tabela (sem recarregar a tela)
+  setInterval(async () => {
+    if (!bruto) return;
+    if (periodo !== "hoje" && !plhModalAberto()) return;
+    try {
+      const [pl, lv] = await Promise.all([buscar("planilha"), buscar("lavagens")]);
+      const nova = planilhaDeHoje(pl);
+      const mudouExistencia = (nova.length > 0) !== (planilha.length > 0);
+      planilha = nova;
+      planilhaDia = pl.dia || "";
+      bruto.lavagens = reindexar(lv);
+      if (pl.dia && Array.isArray(pl.dados) && pl.dados.length) planilhasPorDia[pl.dia] = pl.dados;
+      if (periodo === "hoje") {
+        const corpo = $("#plCorpo");
+        if (mudouExistencia) render();
+        else if (corpo) corpo.innerHTML = planilhaLinhasHtml();
+      }
+      if (plhModalAberto()) plhRender();
+    } catch (e) {}
+  }, 15000);
 
   let diaAtualVisivel = hojeOperacional();
   setInterval(() => {
