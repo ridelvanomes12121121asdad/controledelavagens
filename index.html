@@ -2763,5 +2763,187 @@
     }
   }, 60000);
 </script>
+
+<!-- ============================================================
+     DELL IA NO PAINEL (v2) - cole este bloco ANTES da tag de fechamento do body.
+     O final do arquivo do site deve ficar assim, nesta ordem:
+         (fim do script do site)  ->  ESTE BLOCO  ->  fecha body  ->  fecha html
+     Nao cole dentro do codigo do site.
+     - O site abre normalmente; nada e contatado na Dell ao abrir.
+     - A conexao com a Dell so e feita quando voce aperta o botao D.
+     - Por padrao a IA fica desativada e o botao fica invisivel.
+     ============================================================ -->
+<style>
+  .ia-fab {
+    position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 90;
+    width: 60px; height: 60px; border: 0; border-radius: 20px; cursor: pointer; color: #fff; padding: 0;
+    font: 800 27px/1 "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(135deg, #38bdf8, #2563eb 60%, #1d4ed8);
+    box-shadow: 0 12px 32px rgba(37,99,235,.55), inset 0 1px 0 rgba(255,255,255,.3);
+    display: grid; place-items: center; transition: transform .15s ease;
+  }
+  .ia-fab:hover { transform: translateY(-2px) scale(1.04); }
+  .ia-fab:active { transform: scale(.96); }
+  .ia-fab .ia-ponto {
+    position: absolute; top: -3px; right: -3px; width: 15px; height: 15px; border-radius: 50%;
+    background: #34d399; border: 2px solid #fff; animation: iaPing 2s infinite;
+  }
+  @keyframes iaPing { 70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+  .ia-fab[hidden], .ia-janela[hidden], .ia-fundo[hidden] { display: none; }
+
+  .ia-fundo { position: fixed; inset: 0; z-index: 129; background: rgba(2,8,24,.55); backdrop-filter: blur(2px); }
+  .ia-janela {
+    position: fixed; z-index: 130; right: 18px; bottom: 18px;
+    width: min(430px, calc(100vw - 24px)); height: min(700px, calc(100vh - 36px));
+    display: flex; flex-direction: column; border-radius: 20px; overflow: hidden;
+    background: #030814; border: 1px solid rgba(96,165,250,.28);
+    box-shadow: 0 30px 80px rgba(1,6,20,.6);
+    transition: width .25s ease, height .25s ease, right .25s ease, bottom .25s ease;
+    animation: iaEntra .22s ease;
+  }
+  .ia-janela.grande {
+    width: min(1100px, calc(100vw - 32px)); height: calc(100vh - 32px);
+    right: max(16px, calc((100vw - 1100px) / 2)); bottom: 16px;
+  }
+  @keyframes iaEntra { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+  .ia-cab {
+    flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 12px 10px 14px;
+    background: linear-gradient(180deg, #0b1d45, #071230); border-bottom: 1px solid rgba(96,165,250,.2);
+    color: #e6efff; font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  .ia-cab .ia-logo {
+    width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; color: #fff; margin-right: 4px;
+    background: linear-gradient(135deg, #38bdf8, #2563eb 60%, #1d4ed8); box-shadow: 0 6px 18px rgba(37,99,235,.5);
+  }
+  .ia-cab .ia-tit { margin-right: auto; line-height: 1.15; }
+  .ia-cab .ia-tit b { display: block; font-size: 15px; }
+  .ia-cab .ia-tit small { font-size: 12px; color: #7f93b5; }
+  .ia-cab button {
+    width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(96,165,250,.22); padding: 0;
+    background: rgba(59,130,246,.12); color: #cfe0ff; cursor: pointer; display: grid; place-items: center;
+  }
+  .ia-cab button:hover { background: rgba(59,130,246,.30); color: #fff; }
+  .ia-cab button svg { width: 16px; height: 16px; }
+  .ia-corpo { position: relative; flex: 1; min-height: 0; background: #030814; }
+  .ia-corpo iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #030814; }
+  .ia-conectando { position: absolute; inset: 0; display: grid; place-items: center; color: #7f93b5; font: 600 14px "Segoe UI", system-ui, sans-serif; }
+  .ia-rodape {
+    flex: none; padding: 6px 12px; font-size: 11.5px; color: #6f86ab; text-align: center;
+    background: #050d22; border-top: 1px solid rgba(96,165,250,.12); font-family: "Segoe UI", system-ui, sans-serif;
+  }
+  @media (max-width: 640px) {
+    .ia-janela, .ia-janela.grande { top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: 0; }
+    .ia-cab { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+    #iaExpandir { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ia-janela { transition: none; animation: none; } .ia-fab .ia-ponto { animation: none; } }
+</style>
+
+<script>
+(function () {
+  function iniciarDellIA() {
+    // Endereco da Dell. No computador onde ela roda, o padrao ja funciona.
+    // Para abrir em outro aparelho, troque localhost pelo IP do computador (ex.: http://192.168.0.10:8504).
+    const IA_URL = "http://localhost:8504";
+    // Onde o site de controle guarda o "ativar IA" (mesmo banco que os dois sites ja usam)
+    const IA_ESTADO = "https://controle-de-lavagens-78b2e-default-rtdb.firebaseio.com/planilha/ia.json";
+
+    const ICO_EXPANDIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>';
+    const ICO_REDUZIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>';
+
+    const fab = document.createElement("button");
+    fab.type = "button"; fab.className = "ia-fab"; fab.hidden = true;
+    fab.setAttribute("aria-label", "Abrir a Dell, assistente da lavagem");
+    fab.innerHTML = 'D<span class="ia-ponto"></span>';
+
+    const fundo = document.createElement("div");
+    fundo.className = "ia-fundo"; fundo.hidden = true;
+
+    const janela = document.createElement("div");
+    janela.className = "ia-janela"; janela.hidden = true;
+    janela.setAttribute("role", "dialog"); janela.setAttribute("aria-label", "Dell, assistente da lavagem");
+    janela.innerHTML = `
+      <div class="ia-cab">
+        <div class="ia-logo">D</div>
+        <div class="ia-tit"><b>Dell</b><small>Assistente da lavagem</small></div>
+        <button type="button" id="iaRecarregar" title="Reconectar à Dell" aria-label="Reconectar à Dell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+        <button type="button" id="iaExpandir" title="Expandir" aria-label="Expandir a janela">${ICO_EXPANDIR}</button>
+        <button type="button" id="iaFechar" title="Fechar" aria-label="Fechar a Dell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="ia-corpo" id="iaCorpo"><div class="ia-conectando">Conectando à Dell…</div></div>
+      <div class="ia-rodape">Se a Dell não carregar, confira se ela está aberta no computador (iniciar_usuario.bat) e toque em reconectar.</div>`;
+
+    document.body.append(fab, fundo, janela);
+
+    const corpo = janela.querySelector("#iaCorpo");
+    const btnExp = janela.querySelector("#iaExpandir");
+    let ativa = false, conectou = false, grande = false;
+
+    // A conexao com a Dell so acontece aqui, quando o botao e apertado
+    function conectar() {
+      corpo.innerHTML = '<div class="ia-conectando">Conectando à Dell…</div>';
+      const f = document.createElement("iframe");
+      f.title = "Dell, assistente da lavagem";
+      f.setAttribute("allow", "clipboard-write");
+      f.src = IA_URL;
+      corpo.appendChild(f);
+      conectou = true;
+    }
+    function abrir() {
+      if (!ativa) return;
+      if (!conectou) conectar();
+      janela.hidden = false; fab.hidden = true;
+    }
+    function fechar() {
+      janela.hidden = true; fundo.hidden = true;
+      if (grande) definirGrande(false);
+      fab.hidden = !ativa;
+    }
+    function definirGrande(v) {
+      grande = v;
+      janela.classList.toggle("grande", v);
+      fundo.hidden = !v || janela.hidden;
+      btnExp.innerHTML = v ? ICO_REDUZIR : ICO_EXPANDIR;
+      btnExp.title = v ? "Reduzir" : "Expandir";
+      btnExp.setAttribute("aria-label", v ? "Reduzir a janela" : "Expandir a janela");
+    }
+    function aplicar(nova) {
+      if (nova === ativa) return;
+      ativa = nova;
+      if (!ativa) { fechar(); fab.hidden = true; }
+      else if (janela.hidden) fab.hidden = false;
+    }
+
+    fab.onclick = abrir;
+    janela.querySelector("#iaFechar").onclick = fechar;
+    btnExp.onclick = () => definirGrande(!grande);
+    fundo.onclick = () => definirGrande(false);
+    janela.querySelector("#iaRecarregar").onclick = conectar;
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || janela.hidden) return;
+      if (grande) definirGrande(false); else fechar();
+    });
+
+    // So pergunta ao banco do proprio site (Firebase) se a IA esta ativada. Padrao: desativada.
+    async function verificar() {
+      try {
+        const r = await fetch(IA_ESTADO + "?_=" + Date.now(), { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json();
+        aplicar(!!(j && j.ativa === true));
+      } catch (e) { /* sem conexao: mantem como esta */ }
+    }
+    verificar();
+    setInterval(verificar, 8000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) verificar(); });
+  }
+
+  // Roda so depois que o site terminou de abrir, e um erro aqui nunca afeta o site
+  function seguro() { try { iniciarDellIA(); } catch (e) { try { console.warn("Dell IA indisponivel:", e); } catch (_) {} } }
+  if (document.readyState === "complete") setTimeout(seguro, 800);
+  else window.addEventListener("load", function () { setTimeout(seguro, 800); });
+})();
+</script>
+
 </body>
 </html>
