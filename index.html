@@ -2842,9 +2842,9 @@
 <script>
 (function () {
   function iniciarDellIA() {
-    // Endereco da Dell. No computador onde ela roda, o padrao ja funciona.
-    // Para abrir em outro aparelho, troque localhost pelo IP do computador (ex.: http://192.168.0.10:8504).
-    const IA_URL = "http://localhost:8504";
+    // Endereco publico da Dell (tunel ngrok apontando para a porta 8504 do computador).
+    // Se o ngrok gerar outro endereco, e so trocar aqui.
+    const IA_URL = "https://circular-turf-tropics.ngrok-free.dev";
     // Onde o site de controle guarda o "ativar IA" (mesmo banco que os dois sites ja usam)
     const IA_ESTADO = "https://controle-de-lavagens-78b2e-default-rtdb.firebaseio.com/planilha/ia.json";
 
@@ -2871,7 +2871,7 @@
         <button type="button" id="iaFechar" title="Fechar" aria-label="Fechar a Dell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="ia-corpo" id="iaCorpo"><div class="ia-conectando">Conectando à Dell…</div></div>
-      <div class="ia-rodape">Se a Dell não carregar, confira se ela está aberta no computador (iniciar_usuario.bat) e toque em reconectar.</div>`;
+      <div class="ia-rodape">Se a Dell não carregar, confira se ela e o ngrok estão abertos no computador e toque em reconectar. Se aparecer o aviso do ngrok, toque em Visit Site.</div>`;
 
     document.body.append(fab, fundo, janela);
 
